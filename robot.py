@@ -1,10 +1,13 @@
 import threading
 from asyncio import wait_for
 from enum import Enum
-from ev3dev2.motor import LargeMotor, MediumMotor , OUTPUT_A, OUTPUT_C ,OUTPUT_D , SpeedPercent
-from ev3dev2.sensor import INPUT_1, INPUT_2, INPUT_3, INPUT_4
-from ev3dev2.sensor.lego import TouchSensor, ColorSensor
 
+try:
+    from ev3dev2.motor import LargeMotor, MediumMotor , OUTPUT_A, OUTPUT_C ,OUTPUT_D , SpeedPercent
+    from ev3dev2.sensor import INPUT_1, INPUT_2, INPUT_3, INPUT_4
+    from ev3dev2.sensor.lego import TouchSensor, ColorSensor
+except ImportError:
+    print("Not running on EvDev3!")
 import board
 import time
 
@@ -49,9 +52,15 @@ COLOR_VALUES = [4,11,19,25,37,47,52,70,75,81]
 BOARD_VALUE = 64
 
 class Crane():
+    isInSimulationMode = False
     currentRotation = 0
-    motor = MediumMotor(OUTPUT_C)
-    colorSensor = ColorSensor(INPUT_3)
+
+    try:
+        motor = MediumMotor(OUTPUT_C)
+        colorSensor = ColorSensor(INPUT_3)
+    except:
+        print("CRANE: motor & sensor not connected -- SIMULATION MODE")
+        isInSimulationMode = True
 
     def publicAdjust(self, rotations):
         self.motor.on_for_rotations(SpeedPercent(100), rotations)
@@ -82,64 +91,76 @@ class Crane():
         pass
 
     def readCell(self):
-        values_pass_1 = [-1 for i in range(8)]
-        values_pass_2 = [-1 for i in range(8)]
+        if self.isInSimulationMode:
+            north_wall = int(input("Wall to the North? "))
+            east_wall = int(input("Wall to the East? "))
+            south_wall = int(input("Wall to the South? "))
+            west_wall = int(input("Wall to the West? "))
+            butter_distance = input("Butter distance? ")
+            toaster_distance = input("Toaster distance? ")
+            return [north_wall,east_wall,south_wall,west_wall,-1,butter_distance,toaster_distance,-1]
 
-        """
-        index:
-        0 parede atrás
-        1 parede esquerda
-        2parede frente
-        3 parede direita
-        4 quadrante 1
-        5 quadrante 2
-        6 quadrante 3
-        7 quadrante 4
-        """
-        values_pass_1[0] = self.readSensor() # parede trás
-        self.__rotate45Degrees(Side.LEFT)
-        values_pass_1[6] = self.readSensor()  #quadrante 3
-        self.__rotate45Degrees(Side.LEFT)
-        values_pass_1[1] = self.readSensor() #wall esquerda
-        self.__rotate45Degrees(Side.LEFT)
-        values_pass_1[5] = self.readSensor() #quadrante 2
-        self.__rotate45Degrees(Side.LEFT)
-        values_pass_1[2] = self.readSensor() # wall frente
-        #Return back 
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_2[5] = self.readSensor() #quadrante 2
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_2[1] = self.readSensor()
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_2[6] = self.readSensor()
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_2[0] = self.readSensor()
-        #Reset -- to the right (from reset)
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_1[7]=self.readSensor() #quadrante 4
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_1[3]=self.readSensor() #wall 4
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_1[4] = self.readSensor() #quadrante 1
-        #+45º to get front wall the the second time
-        self.__rotate45Degrees(Side.RIGHT)
-        values_pass_2[2] = self.readSensor()
-        #Return back
-        self.__rotate45Degrees(Side.LEFT)
-        values_pass_2[4] = self.readSensor()
-        self.__rotate45Degrees(Side.LEFT)
-        values_pass_2[3] = self.readSensor()
-        self.__rotate45Degrees(Side.LEFT)
-        values_pass_2[7] = self.readSensor()
-        self.__rotate45Degrees(Side.LEFT)
-        #reset
+            pass
+        else:
 
-        print(values_pass_1)
-        print(values_pass_2)
+            values_pass_1 = [-1 for i in range(8)]
+            values_pass_2 = [-1 for i in range(8)]
 
-        values_average = [(values_pass_1[i]+values_pass_2[i])/2 for i in range(8)]
+            """
+            index:
+            0 parede atrás
+            1 parede esquerda
+            2parede frente
+            3 parede direita
+            4 quadrante 1
+            5 quadrante 2
+            6 quadrante 3
+            7 quadrante 4
+            """
+            values_pass_1[0] = self.readSensor() # parede trás
+            self.__rotate45Degrees(Side.LEFT)
+            values_pass_1[6] = self.readSensor()  #quadrante 3
+            self.__rotate45Degrees(Side.LEFT)
+            values_pass_1[1] = self.readSensor() #wall esquerda
+            self.__rotate45Degrees(Side.LEFT)
+            values_pass_1[5] = self.readSensor() #quadrante 2
+            self.__rotate45Degrees(Side.LEFT)
+            values_pass_1[2] = self.readSensor() # wall frente
+            #Return back
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_2[5] = self.readSensor() #quadrante 2
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_2[1] = self.readSensor()
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_2[6] = self.readSensor()
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_2[0] = self.readSensor()
+            #Reset -- to the right (from reset)
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_1[7]=self.readSensor() #quadrante 4
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_1[3]=self.readSensor() #wall 4
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_1[4] = self.readSensor() #quadrante 1
+            #+45º to get front wall the the second time
+            self.__rotate45Degrees(Side.RIGHT)
+            values_pass_2[2] = self.readSensor()
+            #Return back
+            self.__rotate45Degrees(Side.LEFT)
+            values_pass_2[4] = self.readSensor()
+            self.__rotate45Degrees(Side.LEFT)
+            values_pass_2[3] = self.readSensor()
+            self.__rotate45Degrees(Side.LEFT)
+            values_pass_2[7] = self.readSensor()
+            self.__rotate45Degrees(Side.LEFT)
+            #reset
 
-        return self.__sensorValuesToMeaningfullValues(values_average)
+            print(values_pass_1)
+            print(values_pass_2)
+
+            values_average = [(values_pass_1[i]+values_pass_2[i])/2 for i in range(8)]
+
+            return self.__sensorValuesToMeaningfullValues(values_average)
 
     def __rotate45Degrees(self, side):
         sign = 1
@@ -161,11 +182,16 @@ class Crane():
 
 class Robot:
     crane = Crane()
-    touchSensor = TouchSensor(INPUT_2)
-   
-    motor_left = LargeMotor(OUTPUT_A)
-    motor_right = LargeMotor(OUTPUT_D)
+    isInSimulation = False
 
+    try:
+        touchSensor = TouchSensor(INPUT_2)
+   
+        motor_left = LargeMotor(OUTPUT_A)
+        motor_right = LargeMotor(OUTPUT_D)
+    except:
+        print("ROBOT: touchSensor and motors not connected!")
+        isInSimulation = True
     previousDir = ""
     previousDist = -1
     
@@ -209,9 +235,12 @@ class Robot:
             
         #Talvez mexer menos de uma cell e dar inch forward testando com o sensor de vez em quando a ver se já tá no sitio certo???
     def moveOneCellToTheSide(self, side):
+        if self.isInSimulation:
+            return
+
         if side == Side.RIGHT:
             # Check if there is no wall to the right
-            if self.board.getCell(self.current_x, self.current_y).getRightBorder().hasWall():
+            if self.board.getCell(self.current_x, self.current_y).getRightBorder().has_wall:
                 print("Cannot move right, there is a wall!")
                 return
             
@@ -221,7 +250,7 @@ class Robot:
             #self.current_x += 1
         else:
             # Check if there is no wall to the left
-            if self.board.getCell(self.current_x, self.current_y).getLeftBorder().hasWall():
+            if self.board.getCell(self.current_x, self.current_y).getLeftBorder().has_wall:
                 print("Cannot move left, there is a wall!")
                 return  
             
@@ -231,9 +260,14 @@ class Robot:
             #self.current_x -= 1
 
     def waitNewTurn(self):
+        if self.isInSimulation:
+            input("TouchSensor - WAITING PRESS ENTER TO CONTINUE")
+            return
         self.touchSensor.wait_for_pressed()
 
     def __moveMotor(self, side, rotation):
+        if self.isInSimulation:
+            return
         if side == Side.LEFT:
             self.motor_left.on_for_rotations(SpeedPercent(MOVEMENT_SPEED_PERCENT), rotation * LEFT_MOTOR_CALIBRATION)
         else:
@@ -258,10 +292,10 @@ class Robot:
         cell = self.board.getCell(self.current_x, self.current_y)
         
         # Check each border
-        top_wall = cell.getTopBorder().hasWall()
-        bottom_wall = cell.getBottomBorder().hasWall()
-        left_wall = cell.getLeftBorder().hasWall()
-        right_wall = cell.getRightBorder().hasWall()
+        top_wall = cell.getTopBorder().has_wall
+        bottom_wall = cell.getBottomBorder().has_wall
+        left_wall = cell.getLeftBorder().has_wall
+        right_wall = cell.getRightBorder().has_wall
 
         # Determine edge or corner status
         if top_wall and left_wall and not right_wall and not bottom_wall:
@@ -289,7 +323,7 @@ class Robot:
     def __chooseDirectionToMove(self):
 
         validDirectionsToMove = self.__getDirectionsThatAreValid()
-        print("valid directions: " + str(validDirectionsToMove))
+        #print("valid directions: " + str(validDirectionsToMove))
 
         directionsWhereButterIsCloser = []
         directionsWhereButterIsFurther = []
@@ -302,6 +336,7 @@ class Robot:
                 directionsWhereButterIsFurther.append(direction)
             else: #Not enough info
                 directionsWhereItsMissingInfo.append(direction)
+
 
         print("butter closer: " + str(directionsWhereButterIsCloser))
         print("butter is further: " + str(directionsWhereButterIsFurther))
@@ -316,22 +351,22 @@ class Robot:
     def __getDirectionsThatAreValid(self):
         validDirections = []
 
-        if not self.__getCellTo(CardinalDir.NORTH) is None and not self.board.getCell(self.current_x,self.current_y).getTopBorder().hasWall():
+        if not self.__getCellTo(CardinalDir.NORTH) is None and not self.board.getCell(self.current_x,self.current_y).top_border.has_wall:
             validDirections.append(CardinalDir.NORTH)
             #print("North is Valid")
-        if not self.__getCellTo(CardinalDir.EAST) is None and not self.board.getCell(self.current_x,self.current_y).getRightBorder().hasWall():
+        if not self.__getCellTo(CardinalDir.EAST) is None and not self.board.getCell(self.current_x,self.current_y).right_border.has_wall:
             validDirections.append(CardinalDir.EAST)
             #print("EAST is valid")
-        if not self.__getCellTo(CardinalDir.SOUTH) is None and not self.board.getCell(self.current_x,self.current_y).getBottomBorder().hasWall():
+        if not self.__getCellTo(CardinalDir.SOUTH) is None and not self.board.getCell(self.current_x,self.current_y).bottom_border.has_wall:
             validDirections.append(CardinalDir.SOUTH)
             #print("south is Valid")
-        if not self.__getCellTo(CardinalDir.WEST) is None and not self.board.getCell(self.current_x,self.current_y).getLeftBorder().hasWall():
+        if not self.__getCellTo(CardinalDir.WEST) is None and not self.board.getCell(self.current_x,self.current_y).left_border.has_wall:
             validDirections.append(CardinalDir.WEST)
             #print("West is valid")
         return validDirections
 
     def __isButterCloserIn(self, cardinalDirection):
-        currentDistance = self.board.getCell(self.current_x, self.current_y).getButterDistance()    
+        currentDistance = self.board.getCell(self.current_x, self.current_y).butter_distance
 
         if cardinalDirection == CardinalDir.NORTH:
             oppositeCell = self.__getCellTo(CardinalDir.SOUTH)
@@ -346,20 +381,20 @@ class Robot:
             oppositeCell = self.__getCellTo(CardinalDir.EAST)
             nextCell = self.__getCellTo(CardinalDir.WEST)
 
-        print(cardinalDirection)
-        print(oppositeCell)
-        print(nextCell)    
-        if nextCell.getButterDistance() < currentDistance:
+        #print(cardinalDirection)
+        #print(oppositeCell)
+        #print(nextCell)
+        if not nextCell.butter_distance is None and nextCell.butter_distance < currentDistance:
             return 1
-        if (oppositeCell is None or oppositeCell.getButterDistance() == -1) and (nextCell is None or nextCell.getButterDistance() == -1):
+        if (oppositeCell is None or oppositeCell.butter_distance is None) and (nextCell is None or nextCell.butter_distance is None):
             return -1 #Doesn't know/not valid
-        elif (oppositeCell is None or oppositeCell.getButterDistance() < currentDistance) or nextCell.getButterDistance() > currentDistance:
+        elif (oppositeCell is None or (not oppositeCell.butter_distance is None and oppositeCell.butter_distance < currentDistance)) or (not nextCell.butter_distance is None and nextCell.butter_distance > currentDistance):
             return 0 #nope
-        elif nextCell.getButterDistance() < currentDistance:
+        elif not nextCell.butter_distance is None and nextCell.butter_distance < currentDistance:
             return 1
-        elif not oppositeCell is None and oppositeCell.getButterDistance() > self.board.getCell(self.current_x,self.current_y).getButterDistance():
-            print("Butter is closer in: " + str(cardinalDirection))
-            print("Current distance: " + str(self.board.getCell(self.current_x, self.current_y).getButterDistance()))
+        elif not oppositeCell is None and oppositeCell.butter_distance > self.board.getCell(self.current_x,self.current_y).butter_distance:
+            #print("Butter is closer in: " + str(cardinalDirection))
+            #print("Current distance: " + str(self.board.getCell(self.current_x, self.current_y).butter_distance))
             return 1 #yes
         else :
             return 0 #nope
@@ -402,19 +437,22 @@ class Robot:
               7 quadrante 4
               """
         if sensorReadings[0] == 1:
-            currentCell.getTopBorder().setWall(True)
+            currentCell.top_border.has_wall= True
         if sensorReadings[1] == 1:
-            currentCell.getRightBorder().setWall(True)
+            currentCell.right_border.has_wall = True
         if sensorReadings[2] == 1:
-            currentCell.getBottomBorder().setWall(True)
+            currentCell.bottom_border.has_wall = True
         if sensorReadings[3] == 1:
-            currentCell.getLeftBorder().setWall(True)
-        currentCell.setMoldDistance(int(sensorReadings[4]))
-        currentCell.setButterDistance(int(sensorReadings[5]))
-        currentCell.setToasterDistance(int(sensorReadings[6]))
-        currentCell.setObjectInCell(int(sensorReadings[7]))
+            currentCell.left_border.has_wall = True
+
+        currentCell.butter_distance = int(sensorReadings[5])
+
+        try:
+            currentCell.toaster_distance = int(sensorReadings[6])
+        except:
+            currentCell.toaster_distance = None
         print(sensorReadings)
-        pass
+        currentCell.has_been_explored = True
 
     def makeMove(self):
         chosenDirection = self.__chooseDirectionToMove()
@@ -441,12 +479,13 @@ class Robot:
             print("Not A Valid Direction!!")
 
         #ESPERAR POR AJUSTE MANUAL
-        print(self.current_x)
-        print(self.current_y)
+        print("(" + str(self.current_x) + "," + str(self.current_y) + ")")
         self.waitNewTurn()
 
         #ler nova celula
-        sensorReadings = self.crane.readCell()
+        if not self.board.getCell(self.current_x, self.current_y).has_been_explored:
+            sensorReadings = self.crane.readCell()
+            self.__updateCurrentCell(sensorReadings)
 
         """sensorReadings=[]
         sensorReadings.append(0)
@@ -458,8 +497,6 @@ class Robot:
         sensorReadings.append(0)
         sensorReadings.append(-1)"""
 
-        self.__updateCurrentCell(sensorReadings)
-
         objectInCell = self.board.getCell(self.current_x,self.current_y).getObjectInCell()
         if not objectInCell == -1:
             print("current object in cell ", objectInCell)
@@ -469,8 +506,6 @@ class Robot:
                 print("TOSTADEIRA")
             elif objectInCell == 0:
                 print("LOSS")
-        
-
 
         self.waitNewTurn()
 
