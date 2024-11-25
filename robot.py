@@ -531,3 +531,11 @@ class Robot:
             input1 = input("CALIBRATE AGAIN?")
             if(input1 != "1"):
                 break
+
+    #funçao para ver o desempenho do robot e as cells ja exploradas
+    def Cell_explored (self):
+        explored_cells=sum(
+            1 for row in self.board for cell in row if cell.has_been_explored )
+        total_cells =len (self.board)*len(self.board[0])
+        print(f"Células exploradas: {explored_cells}/{total_cells}")
+        print(f"Porcentagem explorada: {explored_cells / total_cells * 100:.2f}%")#muito opcional
