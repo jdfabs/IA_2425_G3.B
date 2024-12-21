@@ -3,18 +3,24 @@
 import board
 import robot
 
+print("SIMULATION BOARD")
+simulationBoard = board.Board()
+print("EMPTY BOARD")
 board = board.Board()
-robot = robot.Robot(board)
+
+
+
+robot = robot.Robot(board, simulationBoard)
 
 #robot.calibrate_light_sensor()
 
 #while(True):
  #   print(robot.crane.readSensor())
 
-sensorReadings = robot.crane.readCell()
-print(sensorReadings)
+#sensorReadings = robot.crane.readCell()
+#print(sensorReadings)
 
-currentCell = robot.board.getCell(robot.current_x, robot.current_y)
+#currentCell = robot.board.getCell(robot.current_x, robot.current_y)
 """
 index:
         0 parede atrás
@@ -26,7 +32,7 @@ index:
               6 quadrante 3
               7 quadrante 4
               """
-if sensorReadings[0] == 1:
+"""if sensorReadings[0] == 1:
     currentCell.top_border.has_wall = True
 if sensorReadings[1] == 1:
     currentCell.right_border.has_wall = True
@@ -38,9 +44,11 @@ currentCell.butter_distance = int(sensorReadings[5])
 try:
     currentCell.toaster_distance = (int(sensorReadings[6]))
 except:
-    currentCell.toaster_distance = None
+    currentCell.toaster_distance = None"""
 
 while True:
+    simulationBoard.displayBoard()
+    print("\n\n")
     board.displayBoard()
     robot.makeMove()
 
