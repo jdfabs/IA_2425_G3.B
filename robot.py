@@ -184,6 +184,8 @@ class Robot:
     gx = 0
     prev_path = []
 
+    path = []
+
     try:
         touchSensor = TouchSensor(INPUT_2)
    
@@ -423,6 +425,8 @@ class Robot:
             print("Bottom Border Wall: "+ str(currentCell.bottom_border.has_wall))
             print("Left Border Wall: "+ str(currentCell.left_border.has_wall))
             print("Butter Distance:" +str(currentCell.butter_distance))
+            if currentCell.butter_distance == 0:
+                currentCell.butter_distance = -1
             print("Toaster Distance:"+ str(currentCell.toaster_distance))   
         else:
             currentCell = self.board.getCell(self.current_x, self.current_y)
@@ -554,100 +558,166 @@ class Robot:
                     self.returnToStartWithButter()  # Return to the start position with butter
             else:
 
-                self.heuristic_movement()
+                self.a_star_search()
+
+                print("333")
+                print(self.path)
+                chosenDirection = self.path.pop()
+                print("666")
                 
-                """chosenDirection = self.__chooseDirectionToMove()
+                new_x, new_y = chosenDirection
+
                 
-                if chosenDirection == CardinalDir.NORTH:
+                if new_x < self.current_x :
                     print("Moving North")
                     self.moveOneCell(Direction.BACKWARD)
                     self.current_x -= 1
-                elif chosenDirection == CardinalDir.EAST:
+                elif new_y < self.current_y :
                     print("Moving West")
                     self.moveOneCellToTheSide(Side.RIGHT)
                     self.current_y -= 1
-                elif chosenDirection == CardinalDir.SOUTH:
+                elif new_x > self.current_x :
                     print("Moving South")
                     self.moveOneCell(Direction.FORWARD)
                     self.current_x += 1
-                elif chosenDirection == CardinalDir.WEST:
+                elif new_y > self.current_y :
                     print("Moving East")
                     self.moveOneCellToTheSide(Side.LEFT)
                     self.current_y += 1
                 else:
-                    print("Not A Valid Direction!!")"""
+                    print("Not A Valid Direction!!")
                 
 
                 #ESPERAR POR AJUSTE MANUAL
                 print("ROBOT POSITION: ({self.current_x}, {self.current_y})")
-                self.waitNewTurn()
                         
                 self.board.updateRobotPosition(self.current_x,self.current_y)
                 self.board.updateMoldPosition(self.current_x,self.current_y)
 
+        self.board.displayBoard()
         self.waitNewTurn()
 
-    def heuristic_movement(self):
-        #se 1º vez OU é celula é diferente da esperada (cond paragem) -> calcula heuristica 
-        if (not self.has_valid_path):
-            self.a_star_search()
-            pass
-
-        #Mover consoante a heuristica
-
-
-
-
-        if chosenDirection == CardinalDir.NORTH:
-            print("Moving North")
-            self.moveOneCell(Direction.BACKWARD)
-            self.current_x -= 1
-        elif chosenDirection == CardinalDir.EAST:
-            print("Moving West")
-            self.moveOneCellToTheSide(Side.RIGHT)
-            self.current_y -= 1
-        elif chosenDirection == CardinalDir.SOUTH:
-            print("Moving South")
-            self.moveOneCell(Direction.FORWARD)
-            self.current_x += 1
-        elif chosenDirection == CardinalDir.WEST:
-            print("Moving East")
-            self.moveOneCellToTheSide(Side.LEFT)
-            self.current_y += 1
-        else:
-            print("Not A Valid Direction!!")
-
-        #condição de paragem
-        if self.cell_diferent_from_expected():
-            print("NEW HEURISTIC CALCULATION CONDITION")
-            self.has_valid_path = False
 
     def cell_diferent_from_expected(self):
         #TODO verificar se a celula que está corresponde com a que foi calculado na heuristica
         pass
 
     def calculate_heuristics(self, x, y):
-        target_x_arr
-        target_y_arr
+        target_x_arr = []
+        target_y_arr= []
 
         for x in range(6):
             for y in range(6):
                 if self.board.getCell(x,y) in self.board.possible_cells:
-                    target_x.append(x)
-                    target_y.append(y)
+                    target_x_arr.append(x)
+                    target_y_arr.append(y)
 
         target_x = sum(target_x_arr) / len(target_x_arr)
         target_y = sum(target_y_arr) / len(target_y_arr)
         
+
         return abs(x - target_x) + abs(y - target_y)
     
     def a_star_search(self):
         start = (self.current_x, self.current_y)
-        possible_targets = self.board.possible_cells
+        possible_cells = self.board.possible_cells
+
+        possible_targets = []
+
+        for cell in possible_cells:
+            for x in range(6):
+                for y in range(6):
+                    if cell == self.board.getCell(x,y):
+                        possible_targets.append((x,y))
+
+
+
+        if not possible_targets:
+            print("No possible targets. A* search cannot proceed.")
+            return
 
         frontier = PriorityQueue()    
-        open_set.put((self.gx, start))
+        frontier.put((0, start))
 
+        came_from = {}
+        g_score = {start: 0}  # Cost from start to current cell
+        f_score = {start: self.calculate_heuristics(self.current_x, self.current_y)}
+
+        while not frontier.empty():
+            _, current = frontier.get()
+            
+
+            # Check if we've reached any of the target cells
+            if current in possible_targets:
+                print(f"Target reached at {current}. Reconstructing path.")
+                self.reconstruct_path(came_from, current)
+                return
+            
+            
+            for neighbor in self.get_neighbors(current):
+                tentative_g_score = g_score[current] + 1  # Assuming uniform cost for moves
+                
+                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = tentative_g_score + self.calculate_heuristics(*neighbor)
+                    frontier.put((f_score[neighbor], neighbor))
+        
+        print("A* search failed to find a path to any target.")
+
+    def reconstruct_path(self, came_from, current):
+        self.path = []
+        while current in came_from:
+            self.path.append(current)
+            current = came_from[current]
+        #self.path.reverse()
+        #self.execute_path(path)
+
+    def get_neighbors(self, position):
+        x, y = position
+        neighbors = []
+        directions = [
+            (x - 1, y),  # North
+            (x + 1, y),  # South
+            (x, y - 1),  # West
+            (x, y + 1)   # East
+        ]
+        
+        for nx, ny in directions:
+            cell = self.board.getCell(nx, ny)
+            if cell and not self.is_wall_between(position, (nx, ny)):
+                neighbors.append((nx, ny))
+        return neighbors
+
+    def is_wall_between(self, current, neighbor):
+        cx, cy = current
+        nx, ny = neighbor
+        current_cell = self.board.getCell(cx, cy)
+        if nx < cx:  # North
+            return current_cell.top_border.has_wall
+        elif nx > cx:  # South
+            return current_cell.bottom_border.has_wall
+        elif ny < cy:  # West
+            return current_cell.left_border.has_wall
+        elif ny > cy:  # East
+            return current_cell.right_border.has_wall
+        return True
+
+    def execute_path(self, path):
+        print("555")
+        print(path)
+        print("555")
+        for step in path:
+            sx, sy = step
+            if sx < self.current_x:
+                self.moveOneCell(Direction.BACKWARD)
+            elif sx > self.current_x:
+                self.moveOneCell(Direction.FORWARD)
+            elif sy < self.current_y:
+                self.moveOneCellToTheSide(Side.LEFT)
+            elif sy > self.current_y:
+                self.moveOneCellToTheSide(Side.RIGHT)
+            self.current_x, self.current_y = sx, sy
 
     def defaultMoves(self):
         currentCell = self.board.getCell(self.current_x, self.current_y)
@@ -685,6 +755,7 @@ class Robot:
             print(self.current_x == 0 and currentCell.bottom_border.has_wall and currentCell.right_border.has_wall)
             print(self.current_x ==1 and currentCell.right_border.has_wall)
             print(currentCell.toaster_distance == 1)
+        self.board.displayBoard()
 
 
     def calibrate_light_sensor(self):

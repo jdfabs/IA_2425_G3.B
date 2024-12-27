@@ -45,12 +45,18 @@ try:
     currentCell.toaster_distance = (int(sensorReadings[6]))
 except:
     currentCell.toaster_distance = None"""
-
+simulationBoard.displayBoard()
+board.displayBoard()
 while True:
+    robot.makeMove()
+
+    
+    print("REAL BOARD")
     simulationBoard.displayBoard()
     print("\n\n")
-    board.displayBoard()
-    robot.makeMove()
+    
+    
+
 
 #board.getCell(0, 0).getTopBorder().setWall(True)
 #board.getCell(0, 0).getLeftBorder().setWall(True)
