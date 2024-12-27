@@ -1,6 +1,7 @@
 import threading
 from asyncio import wait_for
 from enum import Enum
+from queue import PriorityQueue
 
 try:
     from ev3dev2.motor import LargeMotor, MediumMotor , OUTPUT_A, OUTPUT_C ,OUTPUT_D , SpeedPercent
@@ -178,9 +179,10 @@ class Robot:
 
     turnCounter=0
     
-    has_valid_heuristics = False
+    has_valid_path = False
 
-
+    gx = 0
+    prev_path = []
 
     try:
         touchSensor = TouchSensor(INPUT_2)
@@ -454,7 +456,7 @@ class Robot:
         
         currentCell.has_been_explored = True
         print("Current cell has been marked as explored.")
-        
+        self.board.update_possible_butter_cells(self.current_x, self.current_y)
     
     def returnToStartWithButter(self):
         """
@@ -587,9 +589,9 @@ class Robot:
 
     def heuristic_movement(self):
         #se 1º vez OU é celula é diferente da esperada (cond paragem) -> calcula heuristica 
-        if (not self.has_valid_heuristics):
-            self.calculate_heuristics()
-
+        if (not self.has_valid_path):
+            self.a_star_search()
+            pass
 
         #Mover consoante a heuristica
 
@@ -597,44 +599,55 @@ class Robot:
 
 
         if chosenDirection == CardinalDir.NORTH:
-                print("Moving North")
-                self.moveOneCell(Direction.BACKWARD)
-                self.current_x -= 1
-            elif chosenDirection == CardinalDir.EAST:
-                print("Moving West")
-                self.moveOneCellToTheSide(Side.RIGHT)
-                self.current_y -= 1
-            elif chosenDirection == CardinalDir.SOUTH:
-                print("Moving South")
-                self.moveOneCell(Direction.FORWARD)
-                self.current_x += 1
-            elif chosenDirection == CardinalDir.WEST:
-                print("Moving East")
-                self.moveOneCellToTheSide(Side.LEFT)
-                self.current_y += 1
-            else:
-                print("Not A Valid Direction!!")
+            print("Moving North")
+            self.moveOneCell(Direction.BACKWARD)
+            self.current_x -= 1
+        elif chosenDirection == CardinalDir.EAST:
+            print("Moving West")
+            self.moveOneCellToTheSide(Side.RIGHT)
+            self.current_y -= 1
+        elif chosenDirection == CardinalDir.SOUTH:
+            print("Moving South")
+            self.moveOneCell(Direction.FORWARD)
+            self.current_x += 1
+        elif chosenDirection == CardinalDir.WEST:
+            print("Moving East")
+            self.moveOneCellToTheSide(Side.LEFT)
+            self.current_y += 1
+        else:
+            print("Not A Valid Direction!!")
 
         #condição de paragem
         if self.cell_diferent_from_expected():
             print("NEW HEURISTIC CALCULATION CONDITION")
-            self.has_valid_heuristics = False
+            self.has_valid_path = False
 
     def cell_diferent_from_expected(self):
         #TODO verificar se a celula que está corresponde com a que foi calculado na heuristica
         pass
 
-    def calculate_heuristics(self):
+    def calculate_heuristics(self, x, y):
+        target_x_arr
+        target_y_arr
 
-        #TODO HERISTICS SHIT
-        x, y = self.current_x, self.current_y
+        for x in range(6):
+            for y in range(6):
+                if self.board.getCell(x,y) in self.board.possible_cells:
+                    target_x.append(x)
+                    target_y.append(y)
 
-
-
+        target_x = sum(target_x_arr) / len(target_x_arr)
+        target_y = sum(target_y_arr) / len(target_y_arr)
         
-        self.has_valid_heuristics = True
-        pass
-        
+        return abs(x - target_x) + abs(y - target_y)
+    
+    def a_star_search(self):
+        start = (self.current_x, self.current_y)
+        possible_targets = self.board.possible_cells
+
+        frontier = PriorityQueue()    
+        open_set.put((self.gx, start))
+
 
     def defaultMoves(self):
         currentCell = self.board.getCell(self.current_x, self.current_y)
@@ -660,6 +673,9 @@ class Robot:
         self.__updateCurrentCell()
         self.board.updateRobotPosition(self.current_x,self.current_y)
         self.board.updateMoldPosition(self.current_x,self.current_y)
+        
+        self.gx += 1
+        self.prev_path.append(self.board.getCell(self.current_x,self.current_y))
 
         #condições de paragem
         if self.board.getCell(self.current_x, self.current_y).butter_distance > self.board.getCell(tempX,tempY).butter_distance or (self.current_x == 0 and currentCell.bottom_border.has_wall and currentCell.right_border.has_wall) or (self.current_x ==1 and currentCell.right_border.has_wall) or currentCell.toaster_distance == 1:

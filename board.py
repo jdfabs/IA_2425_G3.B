@@ -10,6 +10,7 @@ class Cell:
     is_robot_here = False
     
     is_butter_here = False
+    is_possible_butter = True
     butter_distance = None
     toaster_distance = None
 
@@ -50,10 +51,13 @@ class Cell:
 class Board:
     def __init__(self):
         self.__matrix = [[Cell() for _ in range(6)] for _ in range(6)]
+        self.possible_cells = []
+        self.robotPreviousPosition = (0, 0)
 
         # Initialize shared borders
         for x in range(6):
             for y in range(6):
+                self.possible_cells.append(self.getCell(x,y))
                 if x > 0:  # Share top border with the cell above
                     self.__matrix[x][y].setTopBorder(self.__matrix[x-1][y].bottom_border)
                 else:  # Create a new top border for the top row
@@ -66,8 +70,8 @@ class Board:
                     # Create new bottom and right borders for every cell
                 self.__matrix[x][y].bottom_border = Border()
                 self.__matrix[x][y].right_border = Border()
-        
-        self.robotPreviousPosition = (0, 0)
+                
+      
         
         self.setupBoard()
 
@@ -412,3 +416,20 @@ class Board:
             self.getCell(new_x, new_y).is_mold_here = True
         else:
             print("Não há movimentos válidos. O bolor permanece em ({current_x}, {current_y}).")
+
+    def update_possible_butter_cells(self, robot_x,robot_y):
+        smells = self.getCell(robot_x,robot_y).butter_distance
+        new_possible_cells = []
+    
+
+        for x in range(6):
+            for y in range(4):
+                if self.getCell(x,y).is_possible_butter and abs(x - robot_x) + abs(y-robot_y) == smells and self.getCell(x,y) in self.possible_cells:
+                    new_possible_cells.append(self.getCell(x,y))
+                    print("possibles: "+ str(x)+ " "+ str(y) )
+        if(new_possible_cells == []):
+            print("ONLY POSSIBLE TO WITH WITH MOLD -> TOASTER")
+
+        self.possible_cells = new_possible_cells
+    
+    
