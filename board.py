@@ -349,7 +349,10 @@ class Board:
         prev_x, prev_y = self.robotPreviousPosition
         
         # Clear the robot from the previous position
-        self.getCell(prev_x, prev_y).is_butter_here = False
+        for x in range(6):
+            for y in range(6):
+                self.getCell(x,y).is_butter_here = False
+                self.getCell(x,y).butter_distance = -1
         # Set the robot at the new position
         self.getCell(new_x, new_y).is_butter_here = True
         
@@ -395,7 +398,7 @@ class Board:
                 print(self.getCell(new_x,new_y).is_butter_here)
                 print(self.getCell(new_x, new_y).butter_distance)   
                 if self.getCell(new_x,new_y).is_butter_here: # MOLD TOUCHES BUTTER # ROBOT LOSES
-                    print("Bolor encontrou a barra de manteiga em ("+str(new_x)+","+str(new_y+"). Jogo terminado."))
+                    print("Bolor encontrou a barra de manteiga em ("+str(new_x)+","+str(new_y)+". Jogo terminado.")
                     exit()
                 elif self.getCell(new_x,new_y).is_robot_here: # MOLD TOUCHES ROBOT # ROBOT LOSES
                     print("Bolor encontrou o robo em ({new_x}, {new_y}). Jogo terminado.")
