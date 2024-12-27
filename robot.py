@@ -178,6 +178,7 @@ class Robot:
 
     turnCounter=0
     
+    has_valid_heuristics = False
 
 
 
@@ -347,22 +348,7 @@ class Robot:
         return directionsWhereButterIsFurther[0]
 
 
-    def __getDirectionsThatAreValid(self):
-        validDirections = []
-
-        if not self.__getCellTo(CardinalDir.NORTH) is None and not self.board.getCell(self.current_x,self.current_y).top_border.has_wall:
-            validDirections.append(CardinalDir.NORTH)
-            #print("North is Valid")
-        if not self.__getCellTo(CardinalDir.EAST) is None and not self.board.getCell(self.current_x,self.current_y).left_border.has_wall:
-            validDirections.append(CardinalDir.EAST)
-            #print("EAST is valid")
-        if not self.__getCellTo(CardinalDir.SOUTH) is None and not self.board.getCell(self.current_x,self.current_y).bottom_border.has_wall:
-            validDirections.append(CardinalDir.SOUTH)
-            #print("south is Valid")
-        if not self.__getCellTo(CardinalDir.WEST) is None and not self.board.getCell(self.current_x,self.current_y).right_border.has_wall:
-            validDirections.append(CardinalDir.WEST)
-            #print("West is valid")
-        return validDirections
+    
 
     def __isButterCloserIn(self, cardinalDirection):
         currentDistance = self.board.getCell(self.current_x, self.current_y).butter_distance
@@ -400,20 +386,12 @@ class Robot:
 
     def __getCellTo(self, cardinalDirection):
         if cardinalDirection == CardinalDir.NORTH:
-            #print("North " + str(self.current_x - 1) + " " + str(self.current_y))
-            #print( self.board.getCell(self.current_x - 1, self.current_y))
             return self.board.getCell(self.current_x - 1, self.current_y)
         elif cardinalDirection == CardinalDir.EAST:
-            #print("East " + str(self.current_x) + " "+ str(self.current_y -1))
-            #print( self.board.getCell(self.current_x , self.current_y -1))
             return self.board.getCell(self.current_x , self.current_y -1)
         elif cardinalDirection == CardinalDir.SOUTH:
-            #print("South " + str(self.current_x +1) + " " + str(self.current_y ))
-            #print(self.board.getCell(self.current_x + 1, self.current_y))
             return self.board.getCell(self.current_x + 1, self.current_y)
         elif cardinalDirection == CardinalDir.WEST:
-            #print("West " + str(self.current_x) + " " + str(self.current_y+1))
-            #print(self.board.getCell(self.current_x, self.current_y+1))
             return self.board.getCell(self.current_x, self.current_y+1)
 
 
@@ -520,41 +498,105 @@ class Robot:
         self.board.updateButterPosition(self.current_x,self.current_y)
         self.board.updateMoldPosition(self.current_x,self.current_y)
     
+    def __getDirectionsThatAreValid(self):
+        validDirections = []
+
+        if not self.__getCellTo(CardinalDir.NORTH) is None and not self.board.getCell(self.current_x,self.current_y).top_border.has_wall:
+            validDirections.append(CardinalDir.NORTH)
+            #print("North is Valid")
+        if not self.__getCellTo(CardinalDir.EAST) is None and not self.board.getCell(self.current_x,self.current_y).left_border.has_wall:
+            validDirections.append(CardinalDir.EAST)
+            #print("EAST is valid")
+        if not self.__getCellTo(CardinalDir.SOUTH) is None and not self.board.getCell(self.current_x,self.current_y).bottom_border.has_wall:
+            validDirections.append(CardinalDir.SOUTH)
+            #print("south is Valid")
+        if not self.__getCellTo(CardinalDir.WEST) is None and not self.board.getCell(self.current_x,self.current_y).right_border.has_wall:
+            validDirections.append(CardinalDir.WEST)
+            #print("West is valid")
+        return validDirections
+
     def makeMove(self):
-        #ler nova celula
-        if not self.board.getCell(self.current_x, self.current_y).has_been_explored:
-            if self.isInSimulation:
-                print("READ FROM SIMULATION BOARD")
-                self.__updateCurrentCell()
-            else:
-                sensorReadings = self.crane.readCell()
-                self.__updateCurrentCell(sensorReadings)
-
-        objectInCell = self.board.getCell(self.current_x,self.current_y).getObjectInCell()
-        if not objectInCell == -1:
-            print("current object in cell ", objectInCell)
-            if objectInCell == 1:
-                print("LOSS")
-            elif objectInCell == 2:
-                print("TOSTADEIRA")
-            elif objectInCell == 0:
-                self.hasButter = True
-                print("MANTEIGA")
-        
-        if self.turnCounter < 4:
-            self.defaultMoves()
-            return
-
-        print("HAS BUTTER: "+ str( self.hasButter))
-        if self.hasButter:
-            objectInCell = self.board.getCell(self.current_x, self.current_y).getObjectInCell()
-            if objectInCell == 0:  # Butter detected
-                print("Butter found! Picking it up.")
-                self.returnToStartWithButter()  # Return to the start position with butter
+        if self.board.getCell(self.current_x, self.current_y).toaster_distance == 0:
+            # TOUCHED THE TOASTER, SKIPING ONE TURN
+            self.board.updateMoldPosition(self.current_x,self.current_y)
         else:
-            chosenDirection = self.__chooseDirectionToMove()
+            #ler nova celula
+            if not self.board.getCell(self.current_x, self.current_y).has_been_explored:
+                if self.isInSimulation:
+                    print("READ FROM SIMULATION BOARD")
+                    self.__updateCurrentCell()
+                else:
+                    sensorReadings = self.crane.readCell()
+                    self.__updateCurrentCell(sensorReadings)
+
+            objectInCell = self.board.getCell(self.current_x,self.current_y).getObjectInCell()
+            if not objectInCell == -1:
+                print("current object in cell ", objectInCell)
+                if objectInCell == 1:
+                    print("LOSS")
+                elif objectInCell == 2:
+                    print("TOSTADEIRA")
+                elif objectInCell == 0:
+                    self.hasButter = True
+                    print("MANTEIGA")
             
-            if chosenDirection == CardinalDir.NORTH:
+            if self.turnCounter < 4:
+                self.defaultMoves()
+                return
+
+            print("HAS BUTTER: "+ str( self.hasButter))
+            if self.hasButter:
+                objectInCell = self.board.getCell(self.current_x, self.current_y).getObjectInCell()
+                if objectInCell == 0:  # Butter detected
+                    print("Butter found! Picking it up.")
+                    self.returnToStartWithButter()  # Return to the start position with butter
+            else:
+
+                self.heuristic_movement()
+                
+                """chosenDirection = self.__chooseDirectionToMove()
+                
+                if chosenDirection == CardinalDir.NORTH:
+                    print("Moving North")
+                    self.moveOneCell(Direction.BACKWARD)
+                    self.current_x -= 1
+                elif chosenDirection == CardinalDir.EAST:
+                    print("Moving West")
+                    self.moveOneCellToTheSide(Side.RIGHT)
+                    self.current_y -= 1
+                elif chosenDirection == CardinalDir.SOUTH:
+                    print("Moving South")
+                    self.moveOneCell(Direction.FORWARD)
+                    self.current_x += 1
+                elif chosenDirection == CardinalDir.WEST:
+                    print("Moving East")
+                    self.moveOneCellToTheSide(Side.LEFT)
+                    self.current_y += 1
+                else:
+                    print("Not A Valid Direction!!")"""
+                
+
+                #ESPERAR POR AJUSTE MANUAL
+                print("ROBOT POSITION: ({self.current_x}, {self.current_y})")
+                self.waitNewTurn()
+                        
+                self.board.updateRobotPosition(self.current_x,self.current_y)
+                self.board.updateMoldPosition(self.current_x,self.current_y)
+
+        self.waitNewTurn()
+
+    def heuristic_movement(self):
+        #se 1º vez OU é celula é diferente da esperada (cond paragem) -> calcula heuristica 
+        if (not self.has_valid_heuristics):
+            self.calculate_heuristics()
+
+
+        #Mover consoante a heuristica
+
+
+
+
+        if chosenDirection == CardinalDir.NORTH:
                 print("Moving North")
                 self.moveOneCell(Direction.BACKWARD)
                 self.current_x -= 1
@@ -573,48 +615,26 @@ class Robot:
             else:
                 print("Not A Valid Direction!!")
 
-            #ESPERAR POR AJUSTE MANUAL
-            print("ROBOT POSITION: ({self.current_x}, {self.current_y})")
-            self.waitNewTurn()
+        #condição de paragem
+        if self.cell_diferent_from_expected():
+            print("NEW HEURISTIC CALCULATION CONDITION")
+            self.has_valid_heuristics = False
+
+    def cell_diferent_from_expected(self):
+        #TODO verificar se a celula que está corresponde com a que foi calculado na heuristica
+        pass
+
+    def calculate_heuristics(self):
+
+        #TODO HERISTICS SHIT
+        x, y = self.current_x, self.current_y
 
 
-                    
-            self.board.updateRobotPosition(self.current_x,self.current_y)
-            self.board.updateMoldPosition(self.current_x,self.current_y)
 
-        self.waitNewTurn()
-
-    def calibrate_light_sensor(self):
-        global COLOR_VALUES
-        global BOARD_VALUE
-        calibration_done = False
-
-        while not calibration_done:
-            print("Calibration process started:")
-            for i in range(10):
-                print("Color " + str(i) + ": ")
-                self.waitNewTurn()
-                COLOR_VALUES[i] = self.crane.readSensor()
-                time.sleep(1)
-            print("Calibrate NULL (Board color):")
-            self.waitNewTurn()
-            BOARD_VALUE = self.crane.readSensor()
-            time.sleep(1)
-            print("VALUES:")
-            print(COLOR_VALUES)
-            print(BOARD_VALUE)
-            input1 = input("CALIBRATE AGAIN?")
-            if(input1 != "1"):
-                break
-
-    #funçao para ver o desempenho do robot e as cells ja exploradas
-    def Cell_explored (self):
-        explored_cells=sum(
-            1 for row in self.board for cell in row if cell.has_been_explored )
-        total_cells =len (self.board)*len(self.board[0])
-        print("Células exploradas: {explored_cells}/{total_cells}")
-        print("Porcentagem explorada: {explored_cells / total_cells * 100:.2f}%")#muito opcional
-
+        
+        self.has_valid_heuristics = True
+        pass
+        
 
     def defaultMoves(self):
         currentCell = self.board.getCell(self.current_x, self.current_y)
@@ -649,3 +669,38 @@ class Robot:
             print(self.current_x == 0 and currentCell.bottom_border.has_wall and currentCell.right_border.has_wall)
             print(self.current_x ==1 and currentCell.right_border.has_wall)
             print(currentCell.toaster_distance == 1)
+
+
+    def calibrate_light_sensor(self):
+        global COLOR_VALUES
+        global BOARD_VALUE
+        calibration_done = False
+
+        while not calibration_done:
+            print("Calibration process started:")
+            for i in range(10):
+                print("Color " + str(i) + ": ")
+                self.waitNewTurn()
+                COLOR_VALUES[i] = self.crane.readSensor()
+                time.sleep(1)
+            print("Calibrate NULL (Board color):")
+            self.waitNewTurn()
+            BOARD_VALUE = self.crane.readSensor()
+            time.sleep(1)
+            print("VALUES:")
+            print(COLOR_VALUES)
+            print(BOARD_VALUE)
+            input1 = input("CALIBRATE AGAIN?")
+            if(input1 != "1"):
+                break
+
+    #funçao para ver o desempenho do robot e as cells ja exploradas
+    def Cell_explored (self):
+        explored_cells=sum(
+            1 for row in self.board for cell in row if cell.has_been_explored )
+        total_cells =len (self.board)*len(self.board[0])
+        print("Células exploradas: {explored_cells}/{total_cells}")
+        print("Porcentagem explorada: {explored_cells / total_cells * 100:.2f}%")#muito opcional
+
+
+    
