@@ -418,14 +418,8 @@ class Robot:
             currentCell.butter_distance = simCell.butter_distance
             currentCell.toaster_distance = simCell.toaster_distance
 
-            # Print the updated cell's data for debugging
-            print("Simulation Data Updated:")
-            print("Top Border Wall: "+ str(currentCell.top_border.has_wall))
-            print("Right Border Wall: "+str( currentCell.right_border.has_wall))
-            print("Bottom Border Wall: "+ str(currentCell.bottom_border.has_wall))
-            print("Left Border Wall: "+ str(currentCell.left_border.has_wall))
-            print("Butter Distance:" +str(currentCell.butter_distance))
-            print("Toaster Distance:"+ str(currentCell.toaster_distance))   
+            print("Simulation Data Updated")
+
         else:
             currentCell = self.board.getCell(self.current_x, self.current_y)
             """
@@ -457,52 +451,85 @@ class Robot:
             print(sensorReadings)
         
         currentCell.has_been_explored = True
-        print("Current cell has been marked as explored.")
+
         self.board.update_possible_butter_cells(self.current_x, self.current_y)
     
     def returnToStartWithButter(self):
-        """
-        Moves the robot back to the starting position (0, 0) after grabbing the butter.
-        Prioritizes moving North first, and then East.
-        """
         print("Robot has grabbed the butter. Returning to start position with the butter.")
-        print("{self.current_x},{self.current_y}")
-        if not (self.current_x == 0 and self.current_y == 0):
-            # Determine valid directions
-            validDirections = self.__getDirectionsThatAreValid()
+        
+        def find_path_to_start():
+            start = (self.current_x, self.current_y)
+            goal = (0, 0)
+            queue = [(start, [])]
+            visited = set()
             
-            # Prioritize North if possible
-            if CardinalDir.NORTH in validDirections and self.current_x > 0:
-                print("Prioritizing North")
+            while queue:
+                (x, y), path = queue.pop(0)
+                if (x, y) == goal:
+                    return path
+                
+                if (x, y) in visited:
+                    continue
+                visited.add((x, y))
+                
+                for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:  # Left, Right, Up, Down
+                    next_x, next_y = x + dx, y + dy
+                    if 0 <= next_x < 6 and 0 <= next_y < 6 and self.is_move_safe(next_x, next_y):
+                        queue.append(((next_x, next_y), path + [(next_x, next_y)]))
+            
+            return None  # No path found
+
+        path_to_start = find_path_to_start()
+        
+        if not path_to_start:
+            print("No safe path to start position found. Game over.")
+            return
+
+        for next_x, next_y in path_to_start:
+            if next_x < self.current_x:
+                print("Moving North")
                 self.moveOneCell(Direction.BACKWARD)
-                self.current_x -= 1
-            # Then prioritize West if possible
-            elif CardinalDir.WEST in validDirections and self.current_y > 0:
-                print("Prioritizing West")
-                self.moveOneCellToTheSide(Side.LEFT)
-                self.current_y -= 1
-            # If neither is possible, move South or East as fallback
-            elif CardinalDir.EAST in validDirections and self.current_y < 5:
-                print("Fallback: Moving East")
+            elif next_y < self.current_y:
+                print("Moving West")
                 self.moveOneCellToTheSide(Side.RIGHT)
-                self.current_y += 1
-            elif CardinalDir.SOUTH in validDirections and self.current_x < 5:
-                print("Fallback: Moving South")
+            elif next_x > self.current_x:
+                print("Moving South")
                 self.moveOneCell(Direction.FORWARD)
-                self.current_x += 1
+            elif next_y > self.current_y:
+                print("Moving East")
+                self.moveOneCellToTheSide(Side.LEFT)
             
-            else:
-                print("No valid moves! Check board configuration.")
+            self.current_x, self.current_y = next_x, next_y
+            
+            # Update board state
+            self.board.updateRobotPosition(self.current_x, self.current_y)
+            self.board.updateMoldPosition(self.current_x, self.current_y)
+            self.board.updateButterPosition(self.current_x, self.current_y)
+            self.board.displayBoard()
+            
+            # Wait for next turn
+            self.waitNewTurn()
+        
+        print("Robot has returned to the starting position with the butter.")
+        exit()
 
-            print("Current Position: ("+str(self.current_x)+","+ str(self.current_y)+")")
-        else:
-            print("Robot has returned to the starting position with the butter.")
-            exit()
-        print("("+str(self.current_x)+","+str(self.current_y)+")")
+    def is_move_safe(self, x, y):
+        cell = self.board.getCell(x, y)
+        
+        if cell.is_mold_here:
+            return False
+        
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            adjacent_cell = self.board.getCell(x + dx, y + dy)
+            if adjacent_cell and adjacent_cell.is_mold_here:
+                return False
+        
+        if cell.toaster_distance == 0:
+            return False
+        
+        return True
 
-        self.board.updateButterPosition(self.current_x,self.current_y)
-        self.board.updateRobotPosition(self.current_x,self.current_y)
-        self.board.updateMoldPosition(self.current_x,self.current_y)
+
     
     def __getDirectionsThatAreValid(self):
         validDirections = []
@@ -544,7 +571,7 @@ class Robot:
                     self.toaster_stun = False
                     self.board.updateMoldPosition(self.current_x,self.current_y)
                     print("STUN FUCKING SHIT M8")
-                    self.board.displayBoard()
+                    
                     return
 
                 self.toaster_stun = True
@@ -597,11 +624,18 @@ class Robot:
             #ESPERAR POR AJUSTE MANUAL
             print("ROBOT POSITION: ({self.current_x}, {self.current_y})")
             
-    
+
             self.board.updateRobotPosition(self.current_x,self.current_y)
             self.board.updateMoldPosition(self.current_x,self.current_y)
+            print("FINISHED MOVE FROM A STAR")
 
+        print("\n\n")
+        print("SIMULATION BOARD")
+        self.simulationBoard.displayBoard()
+        print("\n\n")
+        print("robot board")
         self.board.displayBoard()
+        
         self.waitNewTurn()
 
 
@@ -746,9 +780,9 @@ class Robot:
         return True
 
     def execute_path(self, path):
-        print("555")
+        print("path: ")
         print(path)
-        print("555")
+
         for step in path:
             sx, sy = step
             if sx < self.current_x:
@@ -762,7 +796,6 @@ class Robot:
             self.current_x, self.current_y = sx, sy
 
     def defaultMoves(self):
-        print("DEFAULT MOVE!!!")
         currentCell = self.board.getCell(self.current_x, self.current_y)
         tempX = self.current_x
         tempY = self.current_y
@@ -791,14 +824,20 @@ class Robot:
         self.prev_path.append(self.board.getCell(self.current_x,self.current_y))
         self.turnCounter +=1
         #condições de paragem
-        if self.board.getCell(self.current_x, self.current_y).butter_distance > self.board.getCell(tempX,tempY).butter_distance or (self.current_x == 0 and currentCell.bottom_border.has_wall and currentCell.right_border.has_wall) or (self.current_x ==1 and currentCell.right_border.has_wall) or currentCell.toaster_distance == 1:
+        if self.board.getCell(self.current_x, self.current_y).butter_distance > self.board.getCell(tempX, tempY).butter_distance:
             self.turnCounter = 3
-            print("EXIT CONDITION")
-            print(self.board.getCell(self.current_x, self.current_y).butter_distance > self.board.getCell(tempX,tempY).butter_distance)
-            print(self.current_x == 0 and currentCell.bottom_border.has_wall and currentCell.right_border.has_wall)
-            print(self.current_x ==1 and currentCell.right_border.has_wall)
-            print(currentCell.toaster_distance == 1)
-        self.board.displayBoard()
+            print("EXIT CONDITION: Butter distance increased.")
+        elif self.current_x == 0 and currentCell.bottom_border.has_wall and currentCell.right_border.has_wall:
+            self.turnCounter = 3
+            print("EXIT CONDITION: Robot is at (0, 0) with walls on bottom and right.")
+        elif self.current_x == 1 and currentCell.right_border.has_wall:
+            self.turnCounter = 3
+            print("EXIT CONDITION: Robot is at x=1 with a wall on the right.")
+        elif currentCell.toaster_distance == 1:
+            self.turnCounter = 3
+            print("EXIT CONDITION: Toaster is within 1 cell distance.")
+
+        print("FINISHED MOVE FROM DEFAULT MOVES")
 
 
     def calibrate_light_sensor(self):
