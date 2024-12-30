@@ -462,7 +462,60 @@ class Robot:
     
     def returnToStartWithButter(self):
         print("Robot has grabbed the butter. Returning to start position with the butter.")
+
+        self.a_star_search(self.board.getCell(0,0))
+
+        print(self.path)
+        while(True):
+            chosenDirection = self.path.pop()
+            
+            new_x, new_y = chosenDirection
+
+            
+            if new_x < self.current_x :
+                print("Moving North")
+                self.moveOneCell(Direction.BACKWARD)
+                self.current_x -= 1
+            elif new_y < self.current_y :
+                print("Moving West")
+                self.moveOneCellToTheSide(Side.LEFT)
+                self.current_y -= 1
+            elif new_x > self.current_x :
+                print("Moving South")
+                self.moveOneCell(Direction.FORWARD)
+                self.current_x += 1
+            elif new_y > self.current_y :
+                print("Moving East")
+                self.moveOneCellToTheSide(Side.RIGHT)
+                self.current_y += 1
+            else:
+                print("Not A Valid Direction!!")
+            
+
+            #ESPERAR POR AJUSTE MANUAL
+            print("ROBOT POSITION: ({self.current_x}, {self.current_y})")
+            
+
+            self.board.updateRobotPosition(self.current_x,self.current_y)
+            self.board.updateMoldPosition(self.current_x,self.current_y)
+            if self.current_x == 0 and self.current_y == 0:
+                print("WIN MOFO")
+                exit()
         
+        
+
+        print("\n\n")
+        print("SIMULATION BOARD")
+        self.simulationBoard.displayBoard()
+        print("\n\n")
+        print("robot board")
+        self.board.displayBoard()
+        
+        self.waitNewTurn()
+
+
+
+
         def find_path_to_start():
             start = (self.current_x, self.current_y)
             goal = (0, 0)
@@ -599,10 +652,8 @@ class Robot:
 
             self.a_star_search()
 
-            print("333")
             print(self.path)
             chosenDirection = self.path.pop()
-            print("666")
             
             new_x, new_y = chosenDirection
 
@@ -665,9 +716,12 @@ class Robot:
 
         return abs(x - target_x) + abs(y - target_y)
     
-    def a_star_search(self):
+    def a_star_search(self, target = None):
         start = (self.current_x, self.current_y)
-        possible_cells = self.board.possible_cells
+        if target == None:
+            possible_cells = self.board.possible_cells
+        else:
+            possible_cells = [self.board.getCell(0,0)]
 
         possible_targets = []
 
