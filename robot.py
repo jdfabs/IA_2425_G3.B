@@ -17,7 +17,7 @@ MOVEMENT_SPEED_PERCENT = 15
 ROTATION360 = 53
 
 ROTATIONS_TO_MOVE_ONE_CELL = 2.55*1.22
-ROTATIONS_TO_ROTATE_90_DEGREES = 1.15
+ROTATIONS_TO_ROTATE_90_DEGREES = 1.35
 
 LEFT_MOTOR_CALIBRATION = 1.0
 RIGHT_MOTOR_CALIBRATION = 1.04
@@ -49,8 +49,8 @@ class CardinalDir(Enum):
 8 - rosa
 9- branco
 """
-COLOR_VALUES = [4,11,19,25,37,47,52,70,75,81]
-BOARD_VALUE = 64
+COLOR_VALUES = [11, 15, 21, 30, 43, 50, 67, 86, 95, 95]
+BOARD_VALUE = 69
 
 class Crane():
     isInSimulationMode = False
@@ -238,13 +238,13 @@ class Robot:
         #    self.current_y -= 1
             
         #Talvez mexer menos de uma cell e dar inch forward testando com o sensor de vez em quando a ver se já tá no sitio certo???
-    def moveOneCellToTheSide(self, side):
+    def moveOneCellToTheSide(self, side = Side.RIGHT):
         if self.isInSimulation:
             return
 
         if side == Side.RIGHT:
             # Check if there is no wall to the right
-            if self.board.getCell(self.current_x, self.current_y).getRightBorder().has_wall:
+            if self.board.getCell(self.current_x, self.current_y).right_border.has_wall:
                 print("Cannot move right, there is a wall!")
                 return
             
@@ -254,7 +254,7 @@ class Robot:
             #self.current_x += 1
         else:
             # Check if there is no wall to the left
-            if self.board.getCell(self.current_x, self.current_y).getLeftBorder().has_wall:
+            if self.board.getCell(self.current_x, self.current_y).left_border.has_wall:
                 print("Cannot move left, there is a wall!")
                 return  
             
@@ -426,13 +426,14 @@ class Robot:
                 index:
                 0 parede atrás
                 1 parede esquerda
-                2parede frente
+                2 parede frente
                 3 parede direita
                 4 quadrante 1
                 5 quadrante 2
                 6 quadrante 3
                 7 quadrante 4
                 """
+            print(sensorReadings)
             if sensorReadings[0] == 1:
                 currentCell.top_border.has_wall= True
             if sensorReadings[1] == 1:
@@ -448,7 +449,12 @@ class Robot:
                 currentCell.toaster_distance = int(sensorReadings[6])
             except:
                 currentCell.toaster_distance = None
-            print(sensorReadings)
+            
+            if(sensorReadings[7] == 1):
+                currentCell.is_butter_here = True
+            
+            elif(sensorReadings[7] == 3):
+                currentCell.toaster_distance = 0
         
         currentCell.has_been_explored = True
 
@@ -491,13 +497,13 @@ class Robot:
                 self.moveOneCell(Direction.BACKWARD)
             elif next_y < self.current_y:
                 print("Moving West")
-                self.moveOneCellToTheSide(Side.RIGHT)
+                self.moveOneCellToTheSide(Side.LEFT)
             elif next_x > self.current_x:
                 print("Moving South")
                 self.moveOneCell(Direction.FORWARD)
             elif next_y > self.current_y:
                 print("Moving East")
-                self.moveOneCellToTheSide(Side.LEFT)
+                self.moveOneCellToTheSide(Side.RIGHT)
             
             self.current_x, self.current_y = next_x, next_y
             
@@ -607,7 +613,7 @@ class Robot:
                 self.current_x -= 1
             elif new_y < self.current_y :
                 print("Moving West")
-                self.moveOneCellToTheSide(Side.RIGHT)
+                self.moveOneCellToTheSide(Side.LEFT)
                 self.current_y -= 1
             elif new_x > self.current_x :
                 print("Moving South")
@@ -615,7 +621,7 @@ class Robot:
                 self.current_x += 1
             elif new_y > self.current_y :
                 print("Moving East")
-                self.moveOneCellToTheSide(Side.LEFT)
+                self.moveOneCellToTheSide(Side.RIGHT)
                 self.current_y += 1
             else:
                 print("Not A Valid Direction!!")
@@ -693,7 +699,7 @@ class Robot:
 
             # Check if we've reached any of the target cells
             if current in possible_targets:
-                print(f"Target reached at {current}. Reconstructing path.")
+                print("Target reached at {current}. Reconstructing path.")
                 self.reconstruct_path(came_from, current)
                 return
             
@@ -790,9 +796,9 @@ class Robot:
             elif sx > self.current_x:
                 self.moveOneCell(Direction.FORWARD)
             elif sy < self.current_y:
-                self.moveOneCellToTheSide(Side.LEFT)
-            elif sy > self.current_y:
                 self.moveOneCellToTheSide(Side.RIGHT)
+            elif sy > self.current_y:
+                self.moveOneCellToTheSide(Side.LEFT)
             self.current_x, self.current_y = sx, sy
 
     def defaultMoves(self):
@@ -816,13 +822,16 @@ class Robot:
             self.current_y += 1
         currentCell = self.board.getCell(self.current_x, self.current_y)
 
-        self.__updateCurrentCell()
+        self.waitNewTurn()
+
+        self.__updateCurrentCell(self.crane.readCell())
         self.board.updateRobotPosition(self.current_x,self.current_y)
         self.board.updateMoldPosition(self.current_x,self.current_y)
         
         self.gx += 1
         self.prev_path.append(self.board.getCell(self.current_x,self.current_y))
         self.turnCounter +=1
+
         #condições de paragem
         if self.board.getCell(self.current_x, self.current_y).butter_distance > self.board.getCell(tempX, tempY).butter_distance:
             self.turnCounter = 3
