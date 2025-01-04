@@ -10,7 +10,7 @@ board = board.Board()
 
 robot = robot.Robot(board, simulationBoard)
 
-#robot.calibrate_light_sensor()
+robot.calibrate_light_sensor()
 #while(True):
     #robot.crane.colorSensor.calibrate_white()
     #print(robot.crane.readSensor())

@@ -49,8 +49,8 @@ class CardinalDir(Enum):
 8 - rosa
 9- branco
 """
-COLOR_VALUES = [11, 15, 21, 30, 43, 50, 67, 86, 95, 95]
-BOARD_VALUE = 69
+COLOR_VALUES = [15, 19, 26, 36, 49, 54, 79, 93, 100, 100]
+BOARD_VALUE = 82
 
 class Crane():
     isInSimulationMode = False
@@ -462,7 +462,6 @@ class Robot:
     
     def returnToStartWithButter(self):
         print("Robot has grabbed the butter. Returning to start position with the butter.")
-
         self.a_star_search(self.board.getCell(0,0))
 
         print(self.path)
@@ -688,7 +687,7 @@ class Robot:
 
         print("\n\n")
         print("SIMULATION BOARD")
-        self.simulationBoard.displayBoard()
+        #self.simulationBoard.displayBoard()
         print("\n\n")
         print("robot board")
         self.board.displayBoard()
@@ -704,6 +703,9 @@ class Robot:
         target_x_arr = []
         target_y_arr= []
 
+        if self.hasButter:
+            return abs(x) + abs(y)
+        
         for x in range(6):
             for y in range(6):
                 if self.board.getCell(x,y) in self.board.possible_cells:
@@ -872,7 +874,7 @@ class Robot:
             self.current_x += 1
         else:
             print("Moving East")
-            self.moveOneCellToTheSide(Side.LEFT)
+            self.moveOneCellToTheSide(Side.RIGHT)
             self.current_y += 1
         currentCell = self.board.getCell(self.current_x, self.current_y)
 
