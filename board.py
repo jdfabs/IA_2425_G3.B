@@ -53,6 +53,7 @@ class Board:
         self.__matrix = [[Cell() for _ in range(6)] for _ in range(6)]
         self.possible_cells = []
         self.robotPreviousPosition = (0, 0)
+        
 
         # Initialize shared borders
         for x in range(6):

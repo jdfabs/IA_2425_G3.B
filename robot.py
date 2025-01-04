@@ -176,7 +176,8 @@ class Crane():
 class Robot:
     crane = Crane()
     isInSimulation = False
-
+    moldToMold = False
+    #only_mold_to_toaster=False
     turnCounter=0
     
     has_valid_path = False
@@ -579,6 +580,12 @@ class Robot:
                 self.hasButter = True
                 print("MANTEIGA")
         
+        
+
+        if self.moldToMold:
+            self.moveMoldToToster()
+            return
+
         if self.turnCounter < 3:
             self.defaultMoves()
             return
@@ -595,8 +602,10 @@ class Robot:
 
             print("333")
             print(self.path)
-            chosenDirection = self.path.pop()
-            print("666")
+            try:
+                chosenDirection = self.path.pop()
+            except:
+                self.moldToMold=True
             
             new_x, new_y = chosenDirection
 
@@ -871,5 +880,97 @@ class Robot:
         print("Células exploradas: {explored_cells}/{total_cells}")
         print("Porcentagem explorada: {explored_cells / total_cells * 100:.2f}%")#muito opcional
 
+    def searchfortoaster(self):
+        for row in range(6):
+            target_y_range = range(5, -1, -1) if row % 2 == 1 else range(6)
+            
+            for col in target_y_range:
+                if self.board.getCell(self.current_x,self.current_y).toaster_distance==0:
+                    print("Torradeira encontrada em x={}, y={}".format(self.current_x, self.current_y))
+                    return
+                if col > self.current_y:
+                    # Mover "para a direita"
+                    self.move_right_until(col)
+                elif col < self.current_y:
+                    # Mover "para a esquerda"
+                    self.move_left_until(col)
+                self.read_and_update()
+            if row < 5:
+                self.move_down_once_cell()
+                self.read_and_update()
+            if self.board.getCell(self.current_x, self.current_y).toaster_distance == 0:
+                print("Torradeira encontrada em x={}, y={}".format(self.current_x, self.current_y))
+                return
+        print("not found")
 
+
+    def findToasterCoordinates(self):
+        for x in range(6):
+            for y in range(6):
+                if self.board.getCell(x, y).toaster_distance == 0:
+                    return (x, y)
+        return (None, None)
+
+    def makeM (self):
+        self.board.update_possible_butter_cells(self.current_x, self.current_y)
+
+        if not self.board.possible_cells:
+            ("Alterando a estrategia para Atrair o Mold para a torradeira")
+            self.moveMoldToToster()
+            return
     
+    def moveMoldToToster(self):
+        print("Iniciando estrategia do mold para a torradeira.")
+
+        toaster_x, toaster_y = None, None
+        for x in range(6):
+            for y in range(6):
+                if self.board.getCell(x, y).toaster_distance == 0:
+                    toaster_x, toaster_y = x, y
+                    break
+            if toaster_x is not None:
+                break
+        
+        if toaster_x is None or toaster_y is None:
+            print("Torradeira nao encontrada! Vou iniciar busca.")
+            self.searchForToaster()
+            toaster_x, toaster_y = self.findToasterCoordinates()
+            if toaster_x is None or toaster_y is None:
+                print("Ainda não encontrei a torradeira. Abortando estratégia.")
+                return
+
+        while True:
+            self.board.updateMoldPosition(self.current_x, self.current_y)
+
+            mold_position = None
+            for x in range(6):
+                for y in range(6):
+                    if self.board.getCell(x, y).is_mold_here:
+                        mold_position = (x, y)
+                        break
+                if mold_position is not None:
+                    break
+
+            if mold_position == (toaster_x, toaster_y):
+                print("Vitoria! Mold na torradeira. Jogo terminado.")
+                return
+            
+            mold_x, mold_y = mold_position
+            
+            if mold_x < toaster_x:
+                self.moveOneCell(Direction.FORWARD)
+                self.current_x += 1
+            elif mold_x > toaster_x:
+                self.moveOneCell(Direction.BACKWARD)
+                self.current_x -= 1
+            elif mold_y < toaster_y:
+              
+                self.moveOneCellToTheSide(Side.LEFT) 
+                self.current_y += 1
+            elif mold_y > toaster_y:
+                self.moveOneCellToTheSide(Side.RIGHT)
+                self.current_y -= 1
+            
+            self.board.updateRobotPosition(self.current_x, self.current_y)
+            self.board.displayBoard()
+            # Possibly self.waitNewTurn() if you want the user to press the button each time
