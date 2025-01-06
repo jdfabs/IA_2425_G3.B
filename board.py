@@ -53,6 +53,8 @@ class Board:
         self.__matrix = [[Cell() for _ in range(6)] for _ in range(6)]
         self.possible_cells = []
         self.robotPreviousPosition = (0, 0)
+        
+        self.mold_to_toaster = False
 
         # Initialize shared borders
         for x in range(6):
@@ -400,11 +402,11 @@ class Board:
                 if self.getCell(new_x,new_y).is_butter_here: # MOLD TOUCHES BUTTER # ROBOT LOSES
                     print("Bolor encontrou a barra de manteiga em ("+str(new_x)+","+str(new_y)+". Jogo terminado.")
                     exit()
-                elif self.getCell(new_x,new_y).is_robot_here: # MOLD TOUCHES ROBOT # ROBOT LOSES
-                    print("Bolor encontrou o robo em ({new_x}, {new_y}). Jogo terminado.")
-                    exit()
                 elif self.getCell(new_x,new_y).toaster_distance == 0: #MOLD TOUCHES TOASTER # ROBOT WIN
                     print("Bolor encontrou a tostadeira em ({new_x}, {new_y}). Jogo terminado.")
+                    exit()
+                elif self.getCell(new_x,new_y).is_robot_here: # MOLD TOUCHES ROBOT # ROBOT LOSES
+                    print("Bolor encontrou o robo em ({new_x}, {new_y}). Jogo terminado.")
                     exit()
 
             #calcula a distancia po robot
@@ -432,7 +434,15 @@ class Board:
                     print("possibles: "+ str(x)+ " "+ str(y) )
         if(new_possible_cells == []):
             print("ONLY POSSIBLE TO WITH WITH MOLD -> TOASTER")
+            self.mold_to_toaster = True
+
 
         self.possible_cells = new_possible_cells
-    
-    
+
+
+    def get_mold_y(self):
+        for x in range(6):
+            for y in range(6):
+                if self.getCell(x,y).is_mold_here:
+                    return y
+
