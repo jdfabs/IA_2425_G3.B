@@ -38,15 +38,7 @@ class Cell:
         elif self.is_robot_here:
             return 3
         return -1
-
-
-    def printBorders(self):
-        print(self.top_border.has_wall)
-        print(self.bottom_border.has_wall)
-        print(self.left_border.has_wall)
-        print(self.right_border.has_wall)
-
-    #fazer def para heuristica / 
+    
 
 class Board:
     def __init__(self, board_type = None):
@@ -119,10 +111,8 @@ class Board:
                 cell.right_border.has_wall = False
 
         self.getCell(5, 5).is_mold_here = True
-
         self.getCell(0, 0).is_robot_here = True
 
-        #print("Empty board set up with robot at (0, 0) and mold at (5, 5).")
 
     def setupRandomBoard(self):
         walls_placed = 0
@@ -164,7 +154,6 @@ class Board:
                 self.getCell(toaster_x, toaster_y).toaster_distance = 0
                 break
 
-        #print("Random board generated!")
 
     def setupManualBoard(self):
         mold_x, mold_y = 5, 5
@@ -331,27 +320,6 @@ class Board:
 
         print(bottom_border)
 
-    def displayDistances(self):
-        print("\nButter Distances:")
-        for x in range(6):
-            for y in range(6):
-                cell = self.getCell(x, y)
-                print("{cell.butter_distance or 'X':>3}", end=" ")
-            print()
-
-        print("\nToaster Distances:")
-        for x in range(6):
-            for y in range(6):
-                cell = self.getCell(x, y)
-                print("{cell.toaster_distance or 'X':>3}", end=" ")
-            print()
-
-        print("\nMold Distances:")
-        for x in range(6):
-            for y in range(6):
-                cell = self.getCell(x, y)
-                print("{cell.mold_distance or 'X':>3}", end=" ")
-            print()
 
     def updateButterPosition(self, new_x, new_y):
         """Update the robot's position on the board."""
@@ -374,7 +342,6 @@ class Board:
         prev_x, prev_y = self.robotPreviousPosition
         
         self.getCell(prev_x, prev_y).is_robot_here = False
-        
         self.getCell(new_x, new_y).is_robot_here = True
         
         self.robotPreviousPosition = (new_x, new_y)
@@ -391,7 +358,6 @@ class Board:
         if current_x is None or current_y is None:
             print("Não foi encontrado nenhum bolor no tabuleiro.")
             return
-        
         directions = [
             ("Norte", -1, 0),    
             ("Sul", 1, 0),   
@@ -400,35 +366,40 @@ class Board:
         ]
 
         possible_moves= []
-        shortest_dis=float ('inf')
-        
+
         for direction , dx, dy in directions :
             new_x, new_y = current_x + dx , current_y + dy
             if 0 <= new_x < 6 and 0 <= new_y < 6:
-                print(self.getCell(new_x,new_y).is_butter_here)
-                print(self.getCell(new_x, new_y).butter_distance)   
-                if self.getCell(new_x,new_y).is_butter_here: # MOLD TOUCHES BUTTER # ROBOT LOSES
-                    print("Bolor encontrou a barra de manteiga em ("+str(new_x)+","+str(new_y)+". Jogo terminado.")
-                    exit()
-                elif self.getCell(new_x,new_y).toaster_distance == 0: #MOLD TOUCHES TOASTER # ROBOT WIN
-                    print("Bolor encontrou a tostadeira em ({new_x}, {new_y}). Jogo terminado.")
-                    exit()
-                elif self.getCell(new_x,new_y).is_robot_here: # MOLD TOUCHES ROBOT # ROBOT LOSES
-                    print("Bolor encontrou o robo em ({new_x}, {new_y}). Jogo terminado.")
-                    exit()
+                
 
             #calcula a distancia po robot
                 distance = abs(new_x - robot_x) + abs(new_y - robot_y) #robot_x e _ y passado como parame tros 
                 possible_moves.append((distance, direction, new_x, new_y))
-
         possible_moves.sort(key=lambda move: (move[0], [d[0] for d in directions].index(move[1])))
             
         if possible_moves:
             _, direction, new_x, new_y = possible_moves[0]
             self.getCell(current_x, current_y).is_mold_here = False
             self.getCell(new_x, new_y).is_mold_here = True
+            if self.getCell(new_x,new_y).is_butter_here: # MOLD TOUCHES BUTTER # ROBOT LOSES
+                self.displayBoard()
+                print("Bolor encontrou a barra de manteiga em ("+str(new_x)+","+str(new_y)+". Jogo terminado.")
+                exit()
+            elif self.getCell(new_x,new_y).toaster_distance == 0: #MOLD TOUCHES TOASTER # ROBOT WIN
+                self.getCell(current_x, current_y).is_mold_here = False
+                self.getCell(new_x, new_y).is_mold_here = True
+                self.displayBoard()
+                print("Bolor encontrou a tostadeira em ("+str(new_x)+","+ str(new_y)+"). Jogo terminado.")
+                exit()
+            elif self.getCell(new_x,new_y).is_robot_here: # MOLD TOUCHES ROBOT # ROBOT LOSES
+                self.displayBoard()
+                print("Bolor encontrou o robo em ("+str(new_x)+","+ str(new_y)+"). Jogo terminado.")
+                exit()
+
+
+            
         else:
-            print("Não há movimentos válidos. O bolor permanece em ({current_x}, {current_y}).")
+            print("Não há movimentos válidos. O bolor permanece em ("+str(current_x)+","+ str(current_y)+").")
 
     def update_possible_butter_cells(self, robot_x,robot_y):
         smells = self.getCell(robot_x,robot_y).butter_distance
