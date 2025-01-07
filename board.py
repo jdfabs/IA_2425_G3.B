@@ -49,7 +49,7 @@ class Cell:
     #fazer def para heuristica / 
 
 class Board:
-    def __init__(self):
+    def __init__(self, board_type = None):
         self.__matrix = [[Cell() for _ in range(6)] for _ in range(6)]
         self.possible_cells = []
         self.robotPreviousPosition = (0, 0)
@@ -75,14 +75,22 @@ class Board:
                 
       
         
-        self.setupBoard()
+        self.setupBoard(board_type)
 
     def getCell(self, x, y):
         if not 6 > x > -1 or not 6 > y > -1 :
             return None
         return self.__matrix[x][y]
 
-    def setupBoard(self):
+    def setupBoard(self, board_type = None):
+        if not board_type == None:
+            if  board_type == "empty":
+                self.setupEmptyBoard()
+                return
+            elif board_type == "random":
+                self.setupRandomBoard()
+                self.calculateDistances()
+                return
         choice = input("Enter 'manual', 'random' or 'empty': ").strip().lower()
 
         if choice[0] == "r":
@@ -97,7 +105,7 @@ class Board:
             print("Invalid choice. Please restart and choose either 'manual' or 'random'.")
 
     def setupEmptyBoard(self):
-        for x in range(6):  # Loop through all rows
+        for x in range(6):  #/Loop through all rows
             for y in range(6):  # Loop through all columns
                 cell = self.getCell(x, y)
                 cell.is_robot_here = False
@@ -114,7 +122,7 @@ class Board:
 
         self.getCell(0, 0).is_robot_here = True
 
-        print("Empty board set up with robot at (0, 0) and mold at (5, 5).")
+        #print("Empty board set up with robot at (0, 0) and mold at (5, 5).")
 
     def setupRandomBoard(self):
         walls_placed = 0
@@ -156,7 +164,7 @@ class Board:
                 self.getCell(toaster_x, toaster_y).toaster_distance = 0
                 break
 
-        print("Random board generated!")
+        #print("Random board generated!")
 
     def setupManualBoard(self):
         mold_x, mold_y = 5, 5
@@ -425,13 +433,12 @@ class Board:
     def update_possible_butter_cells(self, robot_x,robot_y):
         smells = self.getCell(robot_x,robot_y).butter_distance
         new_possible_cells = []
-    
-
+        print("Possible butter cells: ")
         for x in range(6):
             for y in range(4):
                 if self.getCell(x,y).is_possible_butter and abs(x - robot_x) + abs(y-robot_y) == smells and self.getCell(x,y) in self.possible_cells:
                     new_possible_cells.append(self.getCell(x,y))
-                    print("possibles: "+ str(x)+ " "+ str(y) )
+                    print("("+ str(x)+ ","+ str(y)+")" )
         if(new_possible_cells == []):
             print("ONLY POSSIBLE TO WITH WITH MOLD -> TOASTER")
             self.mold_to_toaster = True

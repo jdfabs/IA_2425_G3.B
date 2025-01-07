@@ -65,6 +65,7 @@ class Crane():
 
     def publicAdjust(self, rotations):
         self.motor.on_for_rotations(SpeedPercent(100), rotations)
+
     def __sensorValuesToMeaningfullValues(self, outputArray):
         meaningfullValues = [-1 for i in range(8)]
 
@@ -76,7 +77,7 @@ class Crane():
 
         for i in range(4):
             if (BOARD_VALUE + COLOR_VALUES[7])/2 > outputArray[i + 4] > (BOARD_VALUE + COLOR_VALUES[6])/2:
-                print("NULL")
+                print("Valor leitura: NULL")
             else:
                 for j in range (9):
                     if outputArray[i + 4] < (COLOR_VALUES[8 - j] + COLOR_VALUES[8 - j + 1])/2:
@@ -84,8 +85,6 @@ class Crane():
                 if meaningfullValues[i + 4] == -1:
                     print("VALUE WAS STILL -1")
                     meaningfullValues[i+4] = 9
-
-
 
         print(meaningfullValues)
         return meaningfullValues
@@ -95,7 +94,6 @@ class Crane():
         if self.isInSimulationMode:
             pass
         else:
-
             values_pass_1 = [-1 for i in range(8)]
             values_pass_2 = [-1 for i in range(8)]
 
@@ -148,11 +146,7 @@ class Crane():
             self.__rotate45Degrees(Side.LEFT)
             #reset
 
-            print(values_pass_1)
-            print(values_pass_2)
-
             values_average = [(values_pass_1[i]+values_pass_2[i])/2 for i in range(8)]
-
             return self.__sensorValuesToMeaningfullValues(values_average)
 
     def __rotate45Degrees(self, side):
@@ -164,7 +158,6 @@ class Crane():
         self.currentRotation += 45*sign
     def __resetRotation(self):
         while self.currentRotation != 0: 
-            print(self.currentRotation)
             if self.currentRotation >= 45:
                 self.__rotate45Degrees(Side.LEFT)
             else:
@@ -177,13 +170,14 @@ class Robot:
     crane = Crane()
     isInSimulation = False
     moldToMold = False
-    #only_mold_to_toaster=False
     column_search_count = 0
     turnCounter=0
     
     findingToaster = False
     has_valid_path = False
 
+    toaster_stun = True
+    
     gx = 0
     prev_path = []
 
@@ -195,7 +189,7 @@ class Robot:
         motor_left = LargeMotor(OUTPUT_A)
         motor_right = LargeMotor(OUTPUT_D)
     except:
-        print("ROBOT: touchSensor and motors not connected!")
+        print("ROBOT: touchSensor & motors not connected -- SIMULATION MODE")
         isInSimulation = True
     previousDir = ""
     previousDist = -1
@@ -214,19 +208,6 @@ class Robot:
         sign = 1
         if direction == Direction.BACKWARD:
             sign = -1
-        # Check if the robot can move forward or backward
-        if direction == Direction.FORWARD:
-            # Check if there is no wall in front
-            #if self.board.getCell(self.current_x, self.current_y).getTopBorder().hasWall():
-            #   print("Cannot move forward, there is a wall!001")
-            #    return
-            pass
-        else:  # Direction.BACKWARD
-            # Check if there is no wall behind
-            #if self.board.getCell(self.current_x, self.current_y).getBottomBorder().hasWall():
-            #    print("Cannot move backward, there is a wall!002")
-            #    return 
-            pass
 
         thread_move_left_motor = threading.Thread(target=self.__moveMotor, args=(Side.LEFT, ROTATIONS_TO_MOVE_ONE_CELL * sign))
         thread_move_right_motor = threading.Thread(target=self.__moveMotor, args=(Side.RIGHT, ROTATIONS_TO_MOVE_ONE_CELL * sign))
@@ -257,7 +238,6 @@ class Robot:
             self.__rotate90Degrees(Side.RIGHT)
             self.moveOneCell()
             self.__rotate90Degrees(Side.LEFT)
-            #self.current_x += 1
         else:
             # Check if there is no wall to the left
             if self.board.getCell(self.current_x, self.current_y).left_border.has_wall:
@@ -267,12 +247,17 @@ class Robot:
             self.__rotate90Degrees(Side.LEFT)
             self.moveOneCell()
             self.__rotate90Degrees(Side.RIGHT)
-            #self.current_x -= 1
 
     def waitNewTurn(self):
         if self.isInSimulation:
+            print("STARTING STATE")
+            self.simulationBoard.displayBoard()
+            print("CURRENT STATE - ROBOT MEMORY")
+            self.board.displayBoard()
             input("TouchSensor - WAITING PRESS ENTER TO CONTINUE")
             return
+        print("CURRENT STATE - ROBOT MEMORY")
+        self.board.displayBoard()
         self.touchSensor.wait_for_pressed()
 
     def __moveMotor(self, side, rotation):
@@ -298,113 +283,6 @@ class Robot:
         thread_move_left_motor.join()
         thread_move_right_motor.join()
         
-    def checkEdgesAndCorners(self):
-        cell = self.board.getCell(self.current_x, self.current_y)
-        
-        # Check each border
-        top_wall = cell.getTopBorder().has_wall
-        bottom_wall = cell.getBottomBorder().has_wall
-        left_wall = cell.getLeftBorder().has_wall
-        right_wall = cell.getRightBorder().has_wall
-
-        # Determine edge or corner status
-        if top_wall and left_wall and not right_wall and not bottom_wall:
-            print("Robot is in the top-left corner.")
-        elif top_wall and right_wall and not left_wall and not bottom_wall:
-            print("Robot is in the top-right corner.")
-        elif bottom_wall and left_wall and not top_wall and not right_wall:
-            print("Robot is in the bottom-left corner.")
-        elif bottom_wall and right_wall and not top_wall and not left_wall:
-            print("Robot is in the bottom-right corner.")
-        elif top_wall and not bottom_wall:
-            print("Robot is on the top edge.")
-        elif bottom_wall and not top_wall:
-            print("Robot is on the bottom edge.")
-        elif left_wall and not right_wall:
-            print("Robot is on the left edge.")
-        elif right_wall and not left_wall:
-            print("Robot is on the right edge.")
-        else:
-            print("Robot is not near any edge or corner.")
-        
-        # Return whether the robot can move forward (assuming it's facing top to bottom)
-        return not top_wall
-
-    def __chooseDirectionToMove(self):
-
-        validDirectionsToMove = self.__getDirectionsThatAreValid()
-        #print("valid directions: " + str(validDirectionsToMove))
-
-        directionsWhereButterIsCloser = []
-        directionsWhereButterIsFurther = []
-        directionsWhereItsMissingInfo = []
-
-        for direction in validDirectionsToMove:
-            if self.__isButterCloserIn(direction) == 1: #butter is closer
-                directionsWhereButterIsCloser.append(direction)
-            elif self.__isButterCloserIn(direction) == 0: #butter is not closer
-                directionsWhereButterIsFurther.append(direction)
-            else: #Not enough info
-                directionsWhereItsMissingInfo.append(direction)
-
-
-        print("butter closer: " + str(directionsWhereButterIsCloser))
-        print("butter is further: " + str(directionsWhereButterIsFurther))
-        print("others: " + str(directionsWhereItsMissingInfo))
-        if len(directionsWhereButterIsCloser) > 0:
-            return directionsWhereButterIsCloser[0]
-        elif len(directionsWhereItsMissingInfo) > 0:
-            return directionsWhereItsMissingInfo[0]
-        return directionsWhereButterIsFurther[0]
-
-
-    
-
-    def __isButterCloserIn(self, cardinalDirection):
-        currentDistance = self.board.getCell(self.current_x, self.current_y).butter_distance
-
-        if cardinalDirection == CardinalDir.NORTH:
-            oppositeCell = self.__getCellTo(CardinalDir.SOUTH)
-            nextCell = self.__getCellTo(CardinalDir.NORTH)
-        elif cardinalDirection == CardinalDir.EAST:
-            oppositeCell = self.__getCellTo(CardinalDir.WEST)
-            nextCell = self.__getCellTo(CardinalDir.EAST)
-        elif cardinalDirection == CardinalDir.SOUTH:
-            oppositeCell = self.__getCellTo(CardinalDir.NORTH)
-            nextCell = self.__getCellTo(CardinalDir.SOUTH)
-        else :
-            oppositeCell = self.__getCellTo(CardinalDir.EAST)
-            nextCell = self.__getCellTo(CardinalDir.WEST)
-
-        #print(cardinalDirection)
-        #print(oppositeCell)
-        #print(nextCell)
-        if not nextCell.butter_distance is None and nextCell.butter_distance < currentDistance:
-            return 1
-        if (oppositeCell is None or oppositeCell.butter_distance is None) and (nextCell is None or nextCell.butter_distance is None):
-            return -1 #Doesn't know/not valid
-        elif (oppositeCell is None or (not oppositeCell.butter_distance is None and oppositeCell.butter_distance < currentDistance)) or (not nextCell.butter_distance is None and nextCell.butter_distance > currentDistance):
-            return 0 #nope
-        elif not nextCell.butter_distance is None and nextCell.butter_distance < currentDistance:
-            return 1
-        elif not oppositeCell is None and oppositeCell.butter_distance > self.board.getCell(self.current_x,self.current_y).butter_distance:
-            #print("Butter is closer in: " + str(cardinalDirection))
-            #print("Current distance: " + str(self.board.getCell(self.current_x, self.current_y).butter_distance))
-            return 1 #yes
-        else :
-            return 0 #nope
-
-    def __getCellTo(self, cardinalDirection):
-        if cardinalDirection == CardinalDir.NORTH:
-            return self.board.getCell(self.current_x - 1, self.current_y)
-        elif cardinalDirection == CardinalDir.EAST:
-            return self.board.getCell(self.current_x , self.current_y -1)
-        elif cardinalDirection == CardinalDir.SOUTH:
-            return self.board.getCell(self.current_x + 1, self.current_y)
-        elif cardinalDirection == CardinalDir.WEST:
-            return self.board.getCell(self.current_x, self.current_y+1)
-
-
     def __updateCurrentCell(self, sensorReadings = None):
         if self.isInSimulation:
             # Get the current cell on the main board
@@ -424,7 +302,7 @@ class Robot:
             currentCell.butter_distance = simCell.butter_distance
             currentCell.toaster_distance = simCell.toaster_distance
 
-            print("Simulation Data Updated")
+            #print("Simulation Data Updated")
 
         else:
             currentCell = self.board.getCell(self.current_x, self.current_y)
@@ -471,41 +349,40 @@ class Robot:
         self.a_star_search(self.board.getCell(0,0))
 
         print(self.path)
-        while(True):
-            chosenDirection = self.path.pop()
-            
-            new_x, new_y = chosenDirection
+        chosenDirection = self.path.pop()
 
-            
-            if new_x < self.current_x :
-                print("Moving North")
-                self.moveOneCell(Direction.BACKWARD)
-                self.current_x -= 1
-            elif new_y < self.current_y :
-                print("Moving West")
-                self.moveOneCellToTheSide(Side.LEFT)
-                self.current_y -= 1
-            elif new_x > self.current_x :
-                print("Moving South")
-                self.moveOneCell(Direction.FORWARD)
-                self.current_x += 1
-            elif new_y > self.current_y :
-                print("Moving East")
-                self.moveOneCellToTheSide(Side.RIGHT)
-                self.current_y += 1
-            else:
-                print("Not A Valid Direction!!")
-            
+        new_x, new_y = chosenDirection
 
-            #ESPERAR POR AJUSTE MANUAL
-            print("ROBOT POSITION: ({self.current_x}, {self.current_y})")
-            
 
-            self.board.updateRobotPosition(self.current_x,self.current_y)
-            self.board.updateMoldPosition(self.current_x,self.current_y)
-            if self.current_x == 0 and self.current_y == 0:
-                print("WIN MOFO")
-                exit()
+        if new_x < self.current_x :
+            print("Moving North")
+            self.moveOneCell(Direction.BACKWARD)
+            self.current_x -= 1
+        elif new_y < self.current_y :
+            print("Moving West")
+            self.moveOneCellToTheSide(Side.LEFT)
+            self.current_y -= 1
+        elif new_x > self.current_x :
+            print("Moving South")
+            self.moveOneCell(Direction.FORWARD)
+            self.current_x += 1
+        elif new_y > self.current_y :
+            print("Moving East")
+            self.moveOneCellToTheSide(Side.RIGHT)
+            self.current_y += 1
+        else:
+            print("Not A Valid Direction!!")
+
+
+        #ESPERAR POR AJUSTE MANUAL
+        print("ROBOT POSITION: ({self.current_x}, {self.current_y})")
+
+
+        self.board.updateRobotPosition(self.current_x,self.current_y)
+        self.board.updateMoldPosition(self.current_x,self.current_y)
+        if self.current_x == 0 and self.current_y == 0:
+            print("WIN MOFO")
+            exit()
         
         self.a_star_search(self.board.getCell(0,0))
 
@@ -546,7 +423,7 @@ class Robot:
 
         print("\n\n")
         print("robot board")
-        self.board.displayBoard()
+        ##self.board.displayBoard()
         
         self.waitNewTurn()
 
@@ -601,14 +478,13 @@ class Robot:
             self.board.updateRobotPosition(self.current_x, self.current_y)
             self.board.updateButterPosition(self.current_x, self.current_y)
             self.board.updateMoldPosition(self.current_x, self.current_y)
-            self.board.displayBoard()
+            #self.board.displayBoard()
             
             # Wait for next turn
             self.waitNewTurn()
         
         print("Robot has returned to the starting position with the butter.")
         exit()
-
     def is_move_safe(self, x, y):
         cell = self.board.getCell(x, y)
         
@@ -625,32 +501,13 @@ class Robot:
         
         return True
 
-
-    
-    def __getDirectionsThatAreValid(self):
-        validDirections = []
-
-        if not self.__getCellTo(CardinalDir.NORTH) is None and not self.board.getCell(self.current_x,self.current_y).top_border.has_wall:
-            validDirections.append(CardinalDir.NORTH)
-            #print("North is Valid")
-        if not self.__getCellTo(CardinalDir.EAST) is None and not self.board.getCell(self.current_x,self.current_y).left_border.has_wall:
-            validDirections.append(CardinalDir.WEST)
-            #print("EAST is valid")
-        if not self.__getCellTo(CardinalDir.SOUTH) is None and not self.board.getCell(self.current_x,self.current_y).bottom_border.has_wall:
-            validDirections.append(CardinalDir.SOUTH)
-            #print("south is Valid")
-        if not self.__getCellTo(CardinalDir.WEST) is None and not self.board.getCell(self.current_x,self.current_y).right_border.has_wall:
-            validDirections.append(CardinalDir.EAST)
-            #print("West is valid")
-        return validDirections
-    toaster_stun = True
     def makeMove(self):
-        print("TOASTER DISTANCE: "+ str(self.board.getCell(self.current_x,self.current_y).toaster_distance))
+        #print("TOASTER DISTANCE: "+ str(self.board.getCell(self.current_x,self.current_y).toaster_distance))
         
         #ler nova celula
         if not self.board.getCell(self.current_x, self.current_y).has_been_explored:
             if self.isInSimulation:
-                print("READ FROM SIMULATION BOARD")
+                #print("READ FROM SIMULATION BOARD")
                 self.__updateCurrentCell()
             else:
                 sensorReadings = self.crane.readCell()
@@ -658,16 +515,16 @@ class Robot:
 
         objectInCell = self.board.getCell(self.current_x,self.current_y).getObjectInCell()
         if not objectInCell == -1:
-            print("current object in cell ", objectInCell)
             if objectInCell == 1:
                 print("LOSS")
             elif objectInCell == 2:
-                print("TOSTADEIRA")
+                print("OBJECT IN CELL: TOSTADEIRA")
+                self.toaster_found = True
                 if self.toaster_stun:
                     self.toaster_stun = False
                     self.board.updateRobotPosition(self.current_x, self.current_y)
                     self.board.updateMoldPosition(self.current_x,self.current_y)
-                    self.board.displayBoard()
+                    #self.board.displayBoard()
                     print("STUN, SHIT M8")
                     self.waitNewTurn()
                     
@@ -676,14 +533,8 @@ class Robot:
                 self.toaster_stun = True
             elif objectInCell == 0:
                 self.hasButter = True
-                print("MANTEIGA")
+                print("OBJECT IN CELL: MANTEIGA")
         
-        
-
-        if self.moldToMold:
-            self.moveMoldToToster()
-            return
-
         if self.turnCounter < 3:
             self.defaultMoves()
             return
@@ -709,7 +560,7 @@ class Robot:
                 # self.simulationBoard.displayBoard()
                 print("\n\n")
                 print("robot board")
-                self.board.displayBoard()
+                #self.board.displayBoard()
 
                 self.waitNewTurn()
                 return
@@ -760,7 +611,7 @@ class Robot:
         #self.simulationBoard.displayBoard()
         print("\n\n")
         print("robot board")
-        self.board.displayBoard()
+        #self.board.displayBoard()
         
         self.waitNewTurn()
 
@@ -882,20 +733,30 @@ class Robot:
         print("####################")
         print("LURING MOLD TO TOASTER")
         print("####################")
-        self.toaster_found = True
+
+
+
         toaster_x = -1
         toaster_y = -1
         for x in range(6):
             for y in range(6):
-                if self.board.getCell(x,y).toaster_distance == 0:
+                if self.board.getCell(x, y).toaster_distance == 0:
                     toaster_x = x
                     toaster_y = y
-        self.a_star_search(self.board.getCell(x, y))
+
+        if self.current_x == toaster_x and self.current_y == toaster_y and self.current_y > 0:
+            print("Moving West")
+            self.moveOneCellToTheSide(Side.LEFT)
+            self.current_y -= 1
+            self.column_search_count = 0
+            return
+
+        self.a_star_search(self.board.getCell(toaster_x, toaster_y))
 
         if not self.path:
             print("There is no way to lure mold to toaster LOSS!!")
             exit()
-        print(path)
+        print(self.path)
         chosenDirection = self.path.pop()
 
         new_x, new_y = chosenDirection
@@ -920,8 +781,6 @@ class Robot:
         else:
             print("Not A Valid Direction!!")
         pass
-        pass
-
 
 
     def cell_diferent_from_expected(self):
@@ -1050,8 +909,6 @@ class Robot:
         while current in came_from:
             self.path.append(current)
             current = came_from[current]
-        #self.path.reverse()
-        #self.execute_path(path)
 
     def get_neighbors(self, position, restricted_positions):
         x, y = position
@@ -1122,11 +979,13 @@ class Robot:
             self.current_y += 1
         currentCell = self.board.getCell(self.current_x, self.current_y)
 
-        self.waitNewTurn()
 
-        self.__updateCurrentCell(self.crane.readCell())
         self.board.updateRobotPosition(self.current_x,self.current_y)
         self.board.updateMoldPosition(self.current_x,self.current_y)
+
+        self.waitNewTurn()
+        self.__updateCurrentCell(self.crane.readCell())
+        
         
         self.gx += 1
         self.prev_path.append(self.board.getCell(self.current_x,self.current_y))
@@ -1136,31 +995,15 @@ class Robot:
         if self.board.getCell(self.current_x, self.current_y).butter_distance > self.board.getCell(tempX, tempY).butter_distance:
             self.turnCounter = 3
             print("EXIT CONDITION: Butter distance increased.")
-            self.board.displayBoard()
-            self.waitNewTurn()
-            return
         elif self.current_x == 0 and currentCell.bottom_border.has_wall and currentCell.right_border.has_wall:
             self.turnCounter = 3
             print("EXIT CONDITION: Robot is at (0, 0) with walls on bottom and right.")
-            self.board.displayBoard()
-            self.waitNewTurn()
-            return
         elif self.current_x == 1 and currentCell.right_border.has_wall:
             self.turnCounter = 3
             print("EXIT CONDITION: Robot is at x=1 with a wall on the right.")
-            self.board.displayBoard()
-            self.waitNewTurn()
-            return
         elif currentCell.toaster_distance == 1:
             self.turnCounter = 3
             print("EXIT CONDITION: Toaster is within 1 cell distance.")
-            self.board.displayBoard()
-            self.waitNewTurn()
-            return
-
-        print("FINISHED MOVE FROM DEFAULT MOVES")
-        self.board.displayBoard()
-
 
     def calibrate_light_sensor(self):
         global COLOR_VALUES
@@ -1185,105 +1028,5 @@ class Robot:
             if(input1 != "1"):
                 break
 
-    #funçao para ver o desempenho do robot e as cells ja exploradas
-    def Cell_explored (self):
-        explored_cells=sum(
-            1 for row in self.board for cell in row if cell.has_been_explored )
-        total_cells =len (self.board)*len(self.board[0])
-        print("Células exploradas: {explored_cells}/{total_cells}")
-        print("Porcentagem explorada: {explored_cells / total_cells * 100:.2f}%")#muito opcional
-
-    def searchfortoaster(self):
-        for row in range(6):
-            target_y_range = range(5, -1, -1) if row % 2 == 1 else range(6)
-            
-            for col in target_y_range:
-                if self.board.getCell(self.current_x,self.current_y).toaster_distance==0:
-                    print("Torradeira encontrada em x={}, y={}".format(self.current_x, self.current_y))
-                    return
-                if col > self.current_y:
-                    # Mover "para a direita"
-                    self.move_right_until(col)
-                elif col < self.current_y:
-                    # Mover "para a esquerda"
-                    self.move_left_until(col)
-                self.read_and_update()
-            if row < 5:
-                self.move_down_once_cell()
-                self.read_and_update()
-            if self.board.getCell(self.current_x, self.current_y).toaster_distance == 0:
-                print("Torradeira encontrada em x={}, y={}".format(self.current_x, self.current_y))
-                return
-        print("not found")
 
 
-    def findToasterCoordinates(self):
-        for x in range(6):
-            for y in range(6):
-                if self.board.getCell(x, y).toaster_distance == 0:
-                    return (x, y)
-        return (None, None)
-
-    def makeM (self):
-        self.board.update_possible_butter_cells(self.current_x, self.current_y)
-
-        if not self.board.possible_cells:
-            ("Alterando a estrategia para Atrair o Mold para a torradeira")
-            self.moveMoldToToster()
-            return
-    
-    def moveMoldToToster(self):
-        print("Iniciando estrategia do mold para a torradeira.")
-
-        toaster_x, toaster_y = None, None
-        for x in range(6):
-            for y in range(6):
-                if self.board.getCell(x, y).toaster_distance == 0:
-                    toaster_x, toaster_y = x, y
-                    break
-            if toaster_x is not None:
-                break
-        
-        if toaster_x is None or toaster_y is None:
-            print("Torradeira nao encontrada! Vou iniciar busca.")
-            self.searchForToaster()
-            toaster_x, toaster_y = self.findToasterCoordinates()
-            if toaster_x is None or toaster_y is None:
-                print("Ainda não encontrei a torradeira. Abortando estratégia.")
-                return
-
-        while True:
-            self.board.updateMoldPosition(self.current_x, self.current_y)
-
-            mold_position = None
-            for x in range(6):
-                for y in range(6):
-                    if self.board.getCell(x, y).is_mold_here:
-                        mold_position = (x, y)
-                        break
-                if mold_position is not None:
-                    break
-
-            if mold_position == (toaster_x, toaster_y):
-                print("Vitoria! Mold na torradeira. Jogo terminado.")
-                return
-            
-            mold_x, mold_y = mold_position
-            
-            if mold_x < toaster_x:
-                self.moveOneCell(Direction.FORWARD)
-                self.current_x += 1
-            elif mold_x > toaster_x:
-                self.moveOneCell(Direction.BACKWARD)
-                self.current_x -= 1
-            elif mold_y < toaster_y:
-              
-                self.moveOneCellToTheSide(Side.LEFT) 
-                self.current_y += 1
-            elif mold_y > toaster_y:
-                self.moveOneCellToTheSide(Side.RIGHT)
-                self.current_y -= 1
-            
-            self.board.updateRobotPosition(self.current_x, self.current_y)
-            self.board.displayBoard()
-            # Possibly self.waitNewTurn() if you want the user to press the button each time
