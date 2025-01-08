@@ -28,7 +28,6 @@ class Cell:
     def setRightBorder(self, right_border):
         self.right_border = right_border
 
-    # Get the object in the cell if there is any
     def getObjectInCell(self):
         if self.butter_distance == 0 or self.is_butter_here:
             return 0
@@ -39,7 +38,6 @@ class Cell:
         elif self.is_robot_here:
             return 3
         return -1
-    
 
 class Board:
     # Initialize board cells and their borders
@@ -69,7 +67,6 @@ class Board:
         
         self.setupBoard(board_type)
 
-    # Get Cell object
     def getCell(self, x, y):
         if not 6 > x > -1 or not 6 > y > -1 :
             return None
@@ -125,16 +122,16 @@ class Board:
             direction = random.choice(["top", "bottom", "left", "right"])
             cell = self.getCell(x, y)
 
-            if direction == "top" and not cell.top_border.has_wall:
+            if direction[0] == "t" and not cell.top_border.has_wall:
                 cell.top_border.has_wall = True
                 walls_placed += 1
-            elif direction == "bottom" and not cell.bottom_border.has_wall:
+            elif direction[0] == "b" and not cell.bottom_border.has_wall:
                 cell.bottom_border.has_wall = True
                 walls_placed += 1
-            elif direction == "left" and not cell.left_border.has_wall:
+            elif direction[0] == "l" and not cell.left_border.has_wall:
                 cell.left_border.has_wall = True
                 walls_placed += 1
-            elif direction == "right" and not cell.right_border.has_wall:
+            elif direction[0] == "r" and not cell.right_border.has_wall:
                 cell.right_border.has_wall = True
                 walls_placed += 1
 
@@ -168,7 +165,7 @@ class Board:
         walls_placed = 0
         print("Add walls. Enter 'x y direction' (e.g., '2 3 top'). Type 'done' to finish.")
         while walls_placed < 6:
-            user_input = input("Wall position (Walls placed: {walls_placed}/6): ")
+            user_input = input("Wall position (Walls placed: "+ str(walls_placed)+"/6): ")
             if user_input.lower() == "done":
                 break
             try:
@@ -180,16 +177,16 @@ class Board:
                     continue
 
                 cell = self.getCell(x, y)
-                if direction == "top" and not cell.top_border.has_wall:
+                if direction[0] == "t" and not cell.top_border.has_wall:
                     cell.top_border.has_wall = True
                     walls_placed += 1
-                elif direction == "bottom" and not cell.bottom_border.has_wall:
+                elif direction[0] == "b" and not cell.bottom_border.has_wall:
                     cell.bottom_border.has_wall = True
                     walls_placed += 1
-                elif direction == "left" and not cell.left_border.has_wall:
+                elif direction[0] == "l" and not cell.left_border.has_wall:
                     cell.left_border.has_wall = True
                     walls_placed += 1
-                elif direction == "right" and not cell.right_border.has_wall:
+                elif direction[0] == "r" and not cell.right_border.has_wall:
                     cell.right_border.has_wall = True
                     walls_placed += 1
                 else:
@@ -263,7 +260,6 @@ class Board:
         size = 6  # The board is 6x6
 
         for x in range(size):
-            # Print the top border of each row
             top_border = ""
             for y in range(size):
                 top_border += "+"
@@ -272,10 +268,8 @@ class Board:
                 else:
                     top_border += "   "  # No wall
             top_border += "+"
-
             print(top_border)
 
-            # Print the cell content and vertical borders
             row_content = ""
             for y in range(size):
                 if self.getCell(x, y).left_border.has_wall:
@@ -302,8 +296,6 @@ class Board:
                 else:
                     row_content += "  "
             
-
-                # Add the right border of the last cell
                 if self.getCell(x, size-1).right_border.has_wall:
                     row_content += "|"
                 else:
@@ -311,7 +303,6 @@ class Board:
 
             print(row_content)
 
-        # Print the bottom border for the last row
         bottom_border = ""
         for y in range(size):
             bottom_border += "+"
@@ -323,9 +314,8 @@ class Board:
 
         print(bottom_border)
 
-    # Updates Butter position in the board (after being picked up)
+    # Updates Butter position in the board (used after being picked up)
     def updateButterPosition(self, new_x, new_y):
-        # Clear the Butter from the previous position
         for x in range(6):
             for y in range(6):
                 self.getCell(x,y).is_butter_here = False

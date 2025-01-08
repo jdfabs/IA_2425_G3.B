@@ -7,7 +7,7 @@ simulationBoard = board.Board("random")
 board = board.Board("empty")
 robot = robot.Robot(board, simulationBoard)
 
-#robot.calibrate_light_sensor()
+#robot.calibrateLightSensor()
 
 print("STARTING STATE")
 simulationBoard.displayBoard()
