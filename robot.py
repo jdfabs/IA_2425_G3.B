@@ -66,15 +66,18 @@ class Crane():
     def publicAdjust(self, rotations):
         self.motor.on_for_rotations(SpeedPercent(100), rotations)
 
+    # Transforms the values obtained from the color sensor into meaningfull values
     def __sensorValuesToMeaningfullValues(self, outputArray):
         meaningfullValues = [-1 for i in range(8)]
 
+        # Process the first 4 values which are related to walls
         for i  in range(4):
             if outputArray[i] < 50:
                 meaningfullValues[i] = 1
             else:
                 meaningfullValues[i] = 0
 
+        # Process the next 4 values, related to each quadrant
         for i in range(4):
             if (BOARD_VALUE + COLOR_VALUES[7])/2 > outputArray[i + 4] > (BOARD_VALUE + COLOR_VALUES[6])/2:
                 print("Valor leitura: NULL")
@@ -90,6 +93,7 @@ class Crane():
         return meaningfullValues
         pass
 
+    # Makes Crane to rotate and read all necessary values from color sensor
     def readCell(self):
         if self.isInSimulationMode:
             pass
@@ -146,6 +150,7 @@ class Crane():
             self.__rotate45Degrees(Side.LEFT)
             #reset
 
+            # We read twice for each values and do the mean to be more accurate
             values_average = [(values_pass_1[i]+values_pass_2[i])/2 for i in range(8)]
             return self.__sensorValuesToMeaningfullValues(values_average)
 
@@ -198,7 +203,7 @@ class Robot:
         self.moving_right = False
         self.first_time_left_on_1_toaster = False
     
-    #MOVIMENTO LITERAL ROBO LEGO
+    # Basic Motors movement
     def __moveMotor(self, side, rotation):
         if self.isInSimulation:
             return
@@ -207,6 +212,7 @@ class Robot:
         else:
             self.motor_right.on_for_rotations(SpeedPercent(MOVEMENT_SPEED_PERCENT), rotation * RIGHT_MOTOR_CALIBRATION)
 
+    # Robot moves one Cell in the direction that is pointing
     def __moveOneCell(self, direction = Direction.FORWARD):
         sign = 1
         if direction == Direction.BACKWARD:
@@ -220,14 +226,8 @@ class Robot:
 
         thread_move_left_motor.join()
         thread_move_right_motor.join()
-
-        # Update current position
-        #if direction == Direction.FORWARD:
-        #    self.current_y += 1
-        #else:
-        #    self.current_y -= 1
-            
-        #Talvez mexer menos de uma cell e dar inch forward testando com o sensor de vez em quando a ver se já tá no sitio certo???
+        
+    # Robot moves one cell to the side that is chosen
     def __moveOneCellToTheSide(self, side = Side.RIGHT):
         def __rotate90Degrees(self, side):
             sign = 1
@@ -266,7 +266,7 @@ class Robot:
             self.__moveOneCell()
             __rotate90Degrees(self, Side.RIGHT)
 
-    #METODOS SENSOR DE COR
+    # Easy Calibration of all the necessary colors for the color sensor when needed
     def calibrateLightSensor(self):
         global COLOR_VALUES
         global BOARD_VALUE
@@ -289,7 +289,10 @@ class Robot:
             input1 = input("CALIBRATE AGAIN?")
             if(input1 != "1"):
                 break
+            
+    # Updates the current Cell with wall, objects inside it and distances
     def __updateCurrentCell(self, sensorReadings = None):
+        # Simulation way to update the cell
         if self.isInSimulation:
             # Get the current cell on the main board
             currentCell = self.board.getCell(self.current_x, self.current_y)
@@ -308,7 +311,7 @@ class Robot:
             currentCell.butter_distance = simCell.butter_distance
             currentCell.toaster_distance = simCell.toaster_distance
 
-
+        # Real way to update the cell
         else:
             currentCell = self.board.getCell(self.current_x, self.current_y)
             """
@@ -322,6 +325,7 @@ class Robot:
                 6 quadrante 3
                 7 quadrante 4
                 """
+            # Checks the first 4 values from the sensorReadings which are walls
             print(sensorReadings)
             if sensorReadings[0] == 1:
                 currentCell.top_border.has_wall= True
@@ -334,6 +338,7 @@ class Robot:
 
             currentCell.butter_distance = int(sensorReadings[5])
 
+            # Only knows the toaster distance when 1 distance away
             try:
                 currentCell.toaster_distance = int(sensorReadings[6])
             except:
@@ -345,10 +350,12 @@ class Robot:
             elif(sensorReadings[7] == 3):
                 currentCell.toaster_distance = 0
         
+        # Marks current cell as explored
         currentCell.has_been_explored = True
 
         self.board.update_possible_butter_cells(self.current_x, self.current_y)
 
+    # Turn system to stop robot from playing without stoping, also increments turns done
     def __waitNewTurn(self):
         if self.isInSimulation:
             self.turns += 1
@@ -364,7 +371,7 @@ class Robot:
         self.board.displayBoard()
         self.touchSensor.wait_for_pressed()
 
-    #LOGICA ROBO
+    # Main logic for the Robot
     def makeMove(self):
         def __aStarSearch(self, target = None):
             def __getNeighbors(self, position, restricted_positions):
